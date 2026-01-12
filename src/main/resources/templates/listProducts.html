@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html th:replace="~{fragments/layout :: plantilla(~{::body})}" xmlns:th="http://www.thymeleaf.org">
+
+<body>
+<div th:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Gestión de Productos</h2>
+        <a class="btn btn-primary" th:href="@{/products/formProducts}">
+            <i class="bi bi-plus-circle-fill"></i> Nuevo Producto
+        </a>
+    </div>
+
+    <form class="row g-3 mb-4" onsubmit="event.preventDefault()">
+        <div class="col-md-8">
+            <div class="input-group">
+                <span class="input-group-text bg-white text-muted">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input class="form-control border-start-0 ps-0" id="inputSearch"
+                       placeholder="Buscar por código, nombre o marca..."
+                       type="text">
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="input-group">
+                <label class="input-group-text bg-light" for="inputFilter">
+                    <i class="bi bi-funnel-fill me-2"></i> Filtrar
+                </label>
+                <select class="form-select" id="inputFilter">
+                    <option selected value="ALL">Todos</option>
+
+                    <option th:each="estado:${estados}"
+                            th:text="${estado.description}"
+                            th:value="${estado}">
+                    </option>
+
+                </select>
+            </div>
+        </div>
+
+
+    </form>
+
+    <div id="alertContainer"></div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Imagen</th>
+                    <th scope="col">Código</th>
+                    <th scope="col">Nombre</th>
+                    <th scope="col">Marca</th>
+                    <th scope="col">Precio</th>
+                    <th scope="col">Stock</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Acciones</th>
+                </tr>
+                </thead>
+                <tbody id="productTableBody">
+                <tr>
+                    <td class="text-center p-4" colspan="9">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script th:src="@{/js/products.js}"></script>
+</div>
+</body>
+</html>

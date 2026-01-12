@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html th:replace="~{fragments/layout :: plantilla(~{::body})}"
+      xmlns:th="http://www.thymeleaf.org">
+<body>
+<h2 class="mb-4">Dashboard General</h2>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary mb-3 h-100">
+            <div class="card-header">Total Clientes</div>
+            <div class="card-body">
+                <h1 class="card-title"><i class="bi bi-people"></i> 150</h1>
+                <p class="card-text">Clientes registrados este mes.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-success mb-3 h-100">
+            <div class="card-header">Ventas del Día</div>
+            <div class="card-body">
+                <h1 class="card-title"><i class="bi bi-currency-dollar"></i> 1,200</h1>
+                <p class="card-text">Total facturado hoy.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-warning mb-3 h-100">
+            <div class="card-header">Productos Bajos</div>
+            <div class="card-body">
+                <h1 class="card-title"><i class="bi bi-exclamation-triangle"></i> 5</h1>
+                <p class="card-text">Productos con stock crítico.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

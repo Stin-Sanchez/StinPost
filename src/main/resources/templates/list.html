@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html th:replace="~{fragments/layout :: plantilla(~{::body})}" xmlns:th="http://www.thymeleaf.org">
+
+<body>
+<div th:fragment="content">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Gestión de Usuarios</h2>
+        <a class="btn btn-primary" th:href="@{/users/form}">
+            <i class="bi bi-person-plus-fill"></i> Nuevo Usuario
+        </a>
+    </div>
+
+    <form class="row g-3 mb-4" onsubmit="event.preventDefault()">
+        <div class="col-md-8">
+            <div class="input-group">
+            <span class="input-group-text bg-white text-muted">
+                <i class="bi bi-search"></i>
+            </span>
+                <input class="form-control border-start-0 ps-0" id="inputSearch"
+                       placeholder="Buscar por nombre, apellido o usuario..." type="text">
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="input-group">
+                <label class="input-group-text bg-light" for="inputState">
+                    <i class="bi bi-funnel-fill me-2"></i> Filtrar
+                </label>
+                <select class="form-select" id="inputState">
+                    <option selected>Todos</option>
+                    <option value="1">Activos</option>
+                    <option value="2">Inactivos</option>
+                </select>
+            </div>
+        </div>
+    </form>
+
+    <div id="alert-container"></div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Usuario</th>
+                    <th scope="col">Creado</th>
+                    <th scope="col">Ultimo acceso</th>
+                    <th scope="col">Acciones</th>
+                </tr>
+                </thead>
+                <tbody id="table-users-body">
+                <tr>
+                    <td class="text-center p-4" colspan="5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            listarUsuarios();
+        });
+
+        const API_URL = '/api/users'; // Asegúrate de que esta sea tu ruta correcta
+
+        async function listarUsuarios() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) throw new Error('Error al conectar con la API');
+
+                const users = await response.json();
+                renderizarTabla(users);
+            } catch (error) {
+                console.error(error);
+                mostrarAlerta('Error cargando usuarios: ' + error.message, 'danger');
+            }
+        }
+
+        function renderizarTabla(users) {
+            const tbody = document.getElementById('table-users-body');
+            tbody.innerHTML = ''; // Limpiar tabla (quitar spinner)
+
+            if (users.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td class="text-center text-muted p-4" colspan="5">
+                            No hay usuarios registrados en el sistema.
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            let html = '';
+            users.forEach(u => {
+                // Formateo simple de fechas (manejo de nulos)
+                const creado = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : 'N/A';
+                const acceso = u.lastAccess ? new Date(u.lastAccess).toLocaleString() : 'Nunca';
+
+                html += `
+                <tr>
+                    <td>${u.id}</td>
+                    <td class="fw-bold">${u.username}</td>
+                    <td>${creado}</td>
+                    <td>${acceso}</td>
+                    <td>
+                        <a class="btn btn-sm btn-warning me-1"
+                           href="/users/form/${u.id}" title="Editar">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+
+                        <button class="btn btn-sm btn-danger"
+                           onclick="eliminarUsuario(${u.id})" title="Eliminar">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            });
+
+            // Insertamos todo el HTML de golpe (más eficiente)
+            tbody.innerHTML = html;
+        }
+
+        async function eliminarUsuario(id) {
+            if (!confirm('¿Estás seguro de eliminar este usuario? Esta acción es vía API.')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    mostrarAlerta('Usuario eliminado con éxito', 'success');
+                    listarUsuarios(); // Recargar la tabla
+                } else {
+                    mostrarAlerta('No se pudo eliminar el usuario', 'danger');
+                }
+            } catch (error) {
+                console.error(error);
+                mostrarAlerta('Error de conexión', 'danger');
+            }
+        }
+
+        function mostrarAlerta(mensaje, tipo) {
+            const container = document.getElementById('alert-container');
+            container.innerHTML = `
+                <div class="alert alert-${tipo} alert-dismissible fade show" role="alert">
+                    ${mensaje}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            `;
+            // Auto cerrar a los 3 segundos
+            setTimeout(() => {
+                const alert =  bootstrap.Alert.getOrCreateInstance(container.querySelector('.alert'));
+                if(alert) alert.close();
+            }, 3000);
+        }
+    </script>
+</div>
+</body>
+</html>

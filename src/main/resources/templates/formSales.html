@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html th:replace="~{fragments/layout :: plantilla(~{::body})}"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Nueva Venta</title>
+</head>
+<body>
+
+<div th:fragment="content">
+    <div class="row">
+        <div class="col-md-4">
+
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-person-lines-fill"></i> Datos del Cliente
+                </div>
+                <div class="card-body">
+                    <div class="position-relative">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                            <input autocomplete="off" class="form-control" id="searchClient"
+                                   placeholder="Buscar Cliente (Nombre/DNI)..." type="text">
+                        </div>
+
+                        <input id="clientId" type="hidden">
+
+                        <ul class="list-group position-absolute w-100 shadow" id="clientSuggestions"
+                            style="z-index: 1000; display: none; max-height: 200px; overflow-y: auto;"></ul>
+                    </div>
+
+                    <div class="mt-2 p-2 bg-light rounded border">
+                        <small class="text-muted d-block">Cliente Seleccionado:</small>
+                        <strong class="text-primary" id="clientNameDisplay">Consumidor Final</strong>
+                        <button class="btn btn-xs btn-outline-danger ms-2 d-none" id="btnResetClient"
+                                onclick="resetCliente()" title="Quitar cliente">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <i class="bi bi-box-seam"></i> Agregar Producto
+                </div>
+                <div class="card-body">
+                    <div class="mb-3 position-relative">
+                        <label class="form-label">Buscar Producto:</label>
+                        <input autocomplete="off" class="form-control" id="searchProduct"
+                               placeholder="Escribe nombre o código..." type="text">
+
+                        <input id="productId" type="hidden">
+
+                        <ul class="list-group position-absolute w-100 shadow" id="productSuggestions"
+                            style="z-index: 1000; display: none; max-height: 200px; overflow-y: auto;"></ul>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label">Precio ($):</label>
+                            <input class="form-control bg-light" id="productPrice" readonly type="number">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Cantidad:</label>
+                            <input class="form-control" id="productQuantity" min="1" type="number" value="1">
+                        </div>
+                    </div>
+
+                    <button class="btn btn-success w-100 mt-3" onclick="agregarLinea()">
+                        <i class="bi bi-plus-circle"></i> Agregar a la Tabla
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-cart4"></i> Detalle de Venta</span>
+                    <span class="badge bg-secondary" id="fechaHoy"></span>
+                </div>
+
+                <div class="card-body p-0 table-responsive">
+                    <table class="table table-striped table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Producto</th>
+                            <th class="text-center">Precio</th>
+                            <th class="text-center">Cant.</th>
+                            <th class="text-end">Subtotal</th>
+                            <th class="text-center">Acción</th>
+                        </tr>
+                        </thead>
+                        <tbody id="detailsTableBody">
+                        <tr>
+                            <td class="text-center text-muted p-4" colspan="5">
+                                El carrito está vacío. Agrega productos.
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card-footer bg-white border-top-0 p-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-6 mb-2 mb-md-0">
+                            <button class="btn btn-primary btn-lg w-100 shadow-sm" id="btnGuardarVenta"
+                                    onclick="guardarVenta()">
+                                <i class="bi bi-currency-dollar"></i> REALIZAR VENTA
+                            </button>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <h6 class="text-muted text-uppercase small">Total a Pagar</h6>
+                            <h2 class="text-success fw-bold" id="granTotal">$0.00</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- CONFIGURACIÓN Y VARIABLES ---
+        document.getElementById('fechaHoy').innerText = new Date().toLocaleDateString();
+        let cart = []; // Carrito en memoria
+        let productoSeleccionadoTemp = null; // Para validar stock antes de agregar
+
+        // Formateador de dinero
+        const moneyFormatter = new Intl.NumberFormat('en-US', {
+            style: 'currency', currency: 'USD'
+        });
+
+        // --- UTILIDAD: DEBOUNCE (Para optimizar búsquedas) ---
+        const debounce = (func, wait) => {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        };
+
+        // --- 1. LÓGICA DE CLIENTES ---
+        const inputClient = document.getElementById('searchClient');
+        const listClient = document.getElementById('clientSuggestions');
+
+        // Evento al escribir
+        inputClient.addEventListener('input', debounce(async (e) => {
+            const term = e.target.value.trim();
+            if (term.length < 2) { listClient.style.display = 'none'; return; }
+
+            try {
+                // LLAMADA API CLIENTES
+                const response = await fetch(`/api/clients/search/${term}`);
+                if(response.ok) {
+                    const clients = await response.json();
+                    renderClientSuggestions(clients);
+                }
+            } catch (error) { console.error("Error buscando clientes", error); }
+        }, 300));
+
+        function renderClientSuggestions(clients) {
+            listClient.innerHTML = '';
+            if (clients.length === 0) {
+                listClient.style.display = 'none';
+                return;
+            }
+
+            clients.forEach(c => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item list-group-item-action cursor-pointer';
+                li.style.cursor = 'pointer';
+                li.innerHTML = `<div><strong>${c.name} ${c.lastname}</strong></div><small class="text-muted">DNI: ${c.dni}</small>`;
+                li.onclick = () => seleccionarCliente(c);
+                listClient.appendChild(li);
+            });
+            listClient.style.display = 'block';
+        }
+
+        function seleccionarCliente(c) {
+            document.getElementById('clientId').value = c.id;
+            document.getElementById('clientNameDisplay').innerText = `${c.name} ${c.lastname}`;
+            document.getElementById('btnResetClient').classList.remove('d-none');
+            inputClient.value = '';
+            listClient.style.display = 'none';
+        }
+
+        function resetCliente() {
+            document.getElementById('clientId').value = '';
+            document.getElementById('clientNameDisplay').innerText = 'Consumidor Final';
+            document.getElementById('btnResetClient').classList.add('d-none');
+        }
+
+        // --- 2. LÓGICA DE PRODUCTOS ---
+        const inputProduct = document.getElementById('searchProduct');
+        const listProduct = document.getElementById('productSuggestions');
+
+        inputProduct.addEventListener('input', debounce(async (e) => {
+            const term = e.target.value.trim();
+            if (term.length < 2) { listProduct.style.display = 'none'; return; }
+
+            try {
+                // LLAMADA API PRODUCTOS
+                const response = await fetch(`/api/products/search/${term}`);
+                if(response.ok) {
+                    const products = await response.json();
+                    renderProductSuggestions(products);
+                }
+            } catch (error) { console.error("Error buscando productos", error); }
+        }, 300));
+
+        function renderProductSuggestions(products) {
+            listProduct.innerHTML = '';
+            if (products.length === 0) { listProduct.style.display = 'none'; return; }
+
+            products.forEach(p => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item list-group-item-action';
+                li.style.cursor = 'pointer';
+
+                // Color badge según stock
+                let stockBadge = p.stock > 0 ? `<span class="badge bg-success">${p.stock} un.</span>` : `<span class="badge bg-danger">Agotado</span>`;
+
+                li.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>${p.nameProducto}</span>
+                        ${stockBadge}
+                    </div>
+                    <small class="text-muted">Código: ${p.code} | Precio: $${p.price}</small>
+                `;
+
+                if(p.stock > 0) {
+                    li.onclick = () => seleccionarProducto(p);
+                }
+                listProduct.appendChild(li);
+            });
+            listProduct.style.display = 'block';
+        }
+
+        function seleccionarProducto(p) {
+            document.getElementById('productId').value = p.id;
+            document.getElementById('searchProduct').value = p.nameProducto;
+            document.getElementById('productPrice').value = p.price;
+            document.getElementById('productQuantity').value = 1;
+            document.getElementById('productQuantity').focus();
+
+            productoSeleccionadoTemp = p; // Guardamos para validar stock al agregar
+            listProduct.style.display = 'none';
+        }
+
+        // --- 3. GESTIÓN DEL CARRITO (TABLA) ---
+        function agregarLinea() {
+            const id = document.getElementById('productId').value;
+            const name = document.getElementById('searchProduct').value;
+            const price = parseFloat(document.getElementById('productPrice').value);
+            const quantity = parseInt(document.getElementById('productQuantity').value);
+
+            if (!id) { alert("Debes buscar y seleccionar un producto de la lista."); return; }
+            if (quantity <= 0) { alert("La cantidad debe ser mayor a 0"); return; }
+
+            // Validar Stock
+            if(productoSeleccionadoTemp && quantity > productoSeleccionadoTemp.stock) {
+                alert(`Stock insuficiente. Solo quedan ${productoSeleccionadoTemp.stock} unidades.`);
+                return;
+            }
+
+            // Verificar si ya existe en carrito para sumar cantidad
+            const indexExistente = cart.findIndex(item => item.productId == id);
+
+            if (indexExistente !== -1) {
+                // Validar stock acumulado
+                if(productoSeleccionadoTemp && (cart[indexExistente].quantity + quantity) > productoSeleccionadoTemp.stock) {
+                     alert("No puedes agregar más de este producto, superas el stock disponible.");
+                     return;
+                }
+                cart[indexExistente].quantity += quantity;
+                cart[indexExistente].subtotal = cart[indexExistente].quantity * price;
+            } else {
+                cart.push({
+                    productId: id,
+                    name: name,
+                    price: price,
+                    quantity: quantity,
+                    subtotal: price * quantity
+                });
+            }
+
+            renderizarTabla();
+            limpiarInputsProducto();
+        }
+
+        function renderizarTabla() {
+            const tbody = document.getElementById('detailsTableBody');
+            tbody.innerHTML = '';
+            let totalGeneral = 0;
+
+            if (cart.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted p-4">El carrito está vacío. Agrega productos.</td></tr>`;
+                document.getElementById('granTotal').innerText = "$0.00";
+                return;
+            }
+
+            cart.forEach((item, index) => {
+                totalGeneral += item.subtotal;
+                const row = `
+                    <tr>
+                        <td>${item.name}</td>
+                        <td class="text-center">$${item.price.toFixed(2)}</td>
+                        <td class="text-center">${item.quantity}</td>
+                        <td class="text-end fw-bold">$${item.subtotal.toFixed(2)}</td>
+                        <td class="text-center">
+                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarDelCarrito(${index})">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+
+            document.getElementById('granTotal').innerText = moneyFormatter.format(totalGeneral);
+        }
+
+        function eliminarDelCarrito(index) {
+            cart.splice(index, 1);
+            renderizarTabla();
+        }
+
+        function limpiarInputsProducto() {
+            document.getElementById('productId').value = '';
+            document.getElementById('searchProduct').value = '';
+            document.getElementById('productPrice').value = '';
+            document.getElementById('productQuantity').value = 1;
+            productoSeleccionadoTemp = null;
+        }
+
+        // --- 4. GUARDAR VENTA (POST API) ---
+        async function guardarVenta() {
+            if (cart.length === 0) { alert("No puedes realizar una venta vacía."); return; }
+
+            // Animación de carga
+            const btn = document.getElementById('btnGuardarVenta');
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Procesando...`;
+
+            // Construir JSON (SaleRequestDTO)
+            const ventaPayload = {
+                clientId: document.getElementById('clientId').value ? parseInt(document.getElementById('clientId').value) : null,
+                paymentMethods: "EFECTIVO",
+                details: cart.map(item => ({
+                    productId: parseInt(item.productId),
+                    quantity: item.quantity
+                }))
+            };
+
+            try {
+                const response = await fetch('/api/sales', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(ventaPayload)
+                });
+
+                if (response.ok) {
+                    const ventaCreada = await response.json();
+                    alert(`✅ Venta #${ventaCreada.id} realizada con éxito!`);
+
+                    // Resetear todo
+                    cart = [];
+                    renderizarTabla();
+                    resetCliente();
+
+                } else {
+                    const errorMsg = await response.text();
+                    alert("❌ Error al guardar venta: " + errorMsg);
+                }
+            } catch (error) {
+                console.error(error);
+                alert("❌ Error de conexión con el servidor");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+
+        // Cerrar listas si clic fuera
+        document.addEventListener('click', (e) => {
+            if (e.target.id !== 'searchClient') listClient.style.display = 'none';
+            if (e.target.id !== 'searchProduct') listProduct.style.display = 'none';
+        });
+
+    </script>
+</div>
+
+</body>
+</html>

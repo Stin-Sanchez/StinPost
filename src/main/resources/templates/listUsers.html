@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${title}"> Hola mundo spring boot</title>
+    <link crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" rel="stylesheet">
+    <script crossorigin="anonymous"
+            integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+<div class="alert alert-danger " th:if="${error != null}" th:text="${error}"></div>
+<div class="alert alert-success " th:if="${success != null}" th:text="${success}"></div>
+<div class="container my-4">
+    <h3 th:text="${title}"></h3>
+    <a class="btn btn-secondary" th:href="@{/users/form}" th:text="'Create user (+)'"></a>
+    <div th:if="${#lists.isEmpty(users)}" th:text="'No hay usuarios en el sistema '"></div>
+    <table class="table table-hover table-striped" th:if="${not #lists.isEmpty(users)}">
+        <thead>
+        <tr>
+            <th>id</th>
+            <th>name</th>
+            <th>lastname</th>
+            <th>email</th>
+            <th>create at</th>
+            <th>edit</th>
+            <th>remove</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="user: ${users}">
+            <td th:text="${user.id}"></td>
+            <td th:text="${user.name}"></td>
+            <td th:text="${user.lastname}"></td>
+            <td th:text="${user.email}"></td>
+            <td th:text="${user.createdAt}"></td>
+            <td><a class="btn btn-sm btn-primary" th:href="@{/users/form/} + ${user.id}">Edit</a></td>
+            <td><a class="btn btn-sm btn-danger" th:href="@{/users/delete/} + ${user.id}">Delete</a></td>
+            onclick= "return confirm('¿Estas seguro que deseas eliminar este usuario?, esta opción es irreversible')";
+        </tr>
+        </tbody>
+    </table>
+
+</div>
+
+</body>
+</html>

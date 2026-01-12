@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html th:replace="~{fragments/layout :: plantilla(~{::body})}" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Formulario de Usuario</title>
+</head>
+<body class="bg-light">
+<div th:fragment="content">
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-7">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0" id="formTitle">Nuevo Usuario</h4>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <div class="mb-3">
+                            <a class="btn btn-outline-primary btn-sm" th:href="@{/users}">
+                                Volver
+                            </a>
+                        </div>
+
+                        <div class="alert alert-danger d-none" id="globalError"></div>
+
+                        <form id="userForm" novalidate>
+
+                            <input id="id" type="hidden">
+
+                            <h5 class="text-secondary mb-3">Datos Personales</h5>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="name">Nombre <span
+                                            class="text-danger">*</span></label>
+                                    <input class="form-control" id="name" placeholder="Ingrese su nombre" type="text"/>
+                                    <div class="invalid-feedback" id="error-name"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="lastname">Apellido <span class="text-danger">*</span></label>
+                                    <input class="form-control" id="lastname" placeholder="Ingrese su apellido"
+                                           type="text"/>
+                                    <div class="invalid-feedback" id="error-lastname"></div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="dni">Cédula <span
+                                            class="text-danger">*</span></label>
+                                    <input class="form-control" id="dni" maxlength="10" placeholder="Ej: 1234567890"
+                                           type="text"/>
+                                    <div class="invalid-feedback" id="error-dni"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="email">Email <span
+                                            class="text-danger">*</span></label>
+                                    <input class="form-control" id="email" placeholder="ejemplo@correo.com"
+                                           type="email"/>
+                                    <div class="invalid-feedback" id="error-email"></div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="cellPhone">Teléfono <span
+                                            class="text-danger">*</span></label>
+                                    <input class="form-control" id="cellPhone" placeholder="Ej: 0998765432"
+                                           type="text"/>
+                                    <div class="invalid-feedback" id="error-cellPhone"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="age">Edad</label>
+                                    <input class="form-control" id="age" max="127" min="0" placeholder="Ej: 25"
+                                           type="number"/>
+                                    <div class="invalid-feedback" id="error-age"></div>
+                                </div>
+                            </div>
+
+                            <hr class="my-4">
+
+                            <h5 class="text-secondary mb-3">Datos de Acceso</h5>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="username">Usuario <span class="text-danger">*</span></label>
+                                    <input class="form-control" id="username" placeholder="Nombre de usuario"
+                                           type="text"/>
+                                    <div class="invalid-feedback" id="error-username"></div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" for="password">Contraseña</label>
+                                    <input class="form-control" id="password" placeholder="Mínimo 8 caracteres"
+                                           type="password"/>
+                                    <small class="text-muted d-none" id="passwordHelp">Dejar en blanco para no
+                                        cambiar</small>
+                                    <div class="invalid-feedback" id="error-password"></div>
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 mt-4">
+                                <button class="btn btn-success btn-lg" id="btnSubmit" type="submit">
+                                    <span aria-hidden="true" class="spinner-border spinner-border-sm d-none"
+                                          role="status"></span>
+                                    Guardar Usuario
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api/users';
+
+        document.addEventListener("DOMContentLoaded", () => {
+            verificarEdicion();
+        });
+
+        // 1. DETECTAR SI ES EDICIÓN (Mirando la URL)
+        async function verificarEdicion() {
+            // Obtenemos el ID de la URL. Ej: /users/form/5  -> id = 5
+            const pathParts = window.location.pathname.split('/');
+            const id = pathParts[pathParts.length - 1]; // El último segmento
+
+            // Si es un número, estamos editando
+            if (!isNaN(id) && id !== 'form') {
+                document.getElementById('formTitle').innerText = 'Editar Usuario';
+                document.getElementById('btnSubmit').innerHTML = '<span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span> Actualizar Usuario';
+                document.getElementById('id').value = id;
+                document.getElementById('passwordHelp').classList.remove('d-none'); // Mostrar ayuda de pass
+
+                await cargarDatosUsuario(id);
+            }
+        }
+
+        // 2. CARGAR DATOS (GET)
+        async function cargarDatosUsuario(id) {
+            try {
+                const response = await fetch(`${API_URL}/${id}`);
+                if (!response.ok) throw new Error("No se pudo cargar el usuario");
+                const user = await response.json();
+
+                // Rellenar campos
+                document.getElementById('name').value = user.name;
+                document.getElementById('lastname').value = user.lastname;
+                document.getElementById('dni').value = user.dni;
+                document.getElementById('email').value = user.email;
+                document.getElementById('cellPhone').value = user.cellPhone;
+                document.getElementById('age').value = user.age;
+                document.getElementById('username').value = user.username;
+                // Password no se carga por seguridad
+
+            } catch (error) {
+                console.error(error);
+                alert("Error cargando datos del usuario");
+            }
+        }
+
+        // 3. ENVIAR FORMULARIO (POST/PUT)
+        document.getElementById('userForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            limpiarErrores();
+            mostrarCargando(true);
+
+            const id = document.getElementById('id').value;
+            const esEdicion = !!id;
+
+            // Construir JSON
+            const userData = {
+                id: id ? parseInt(id) : null,
+                name: document.getElementById('name').value,
+                lastname: document.getElementById('lastname').value,
+                dni: document.getElementById('dni').value,
+                email: document.getElementById('email').value,
+                cellPhone: document.getElementById('cellPhone').value,
+                age: document.getElementById('age').value ? parseInt(document.getElementById('age').value) : null,
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value // Puede ir vacío en edición
+            };
+
+            const method = esEdicion ? 'PUT' : 'POST';
+            const url = esEdicion ? `${API_URL}/${id}` : API_URL;
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(userData)
+                });
+
+                if (response.ok) {
+                    // Éxito: Redirigir a la lista
+                    window.location.href = '/users';
+                } else {
+                    // Error: Probablemente validación (400)
+                    const errorData = await response.json();
+                    if (response.status === 400 && errorData.errors) {
+                         // Manejar errores de Spring Validation
+                         mostrarErroresValidacion(errorData.errors);
+                    } else {
+                        mostrarErrorGlobal("Ocurrió un error inesperado al guardar.");
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+                mostrarErrorGlobal("Error de conexión con el servidor.");
+            } finally {
+                mostrarCargando(false);
+            }
+        });
+
+        // 4. UTILIDADES VISUALES
+        function limpiarErrores() {
+            document.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+            document.querySelectorAll('.invalid-feedback').forEach(el => el.innerText = '');
+            document.getElementById('globalError').classList.add('d-none');
+        }
+
+        function mostrarErroresValidacion(errors) {
+            // Spring Boot puede devolver errores como lista o mapa.
+            // Si usas BindingResult, suele devolver un JSON con campo y mensaje.
+            // Adaptar según cómo devuelva tu API los errores.
+
+            // Ejemplo asumiendo estructura estándar: [{field: "email", defaultMessage: "Error..."}]
+            if (Array.isArray(errors)) {
+                errors.forEach(err => {
+                    const input = document.getElementById(err.field);
+                    if (input) {
+                        input.classList.add('is-invalid');
+                        const feedback = document.getElementById(`error-${err.field}`);
+                        if (feedback) feedback.innerText = err.defaultMessage;
+                    }
+                });
+            } else {
+                 // Si devuelve un mapa simple { "email": "Error..." }
+                 for (const [field, msg] of Object.entries(errors)) {
+                    const input = document.getElementById(field);
+                    if (input) {
+                        input.classList.add('is-invalid');
+                        const feedback = document.getElementById(`error-${field}`);
+                        if (feedback) feedback.innerText = msg;
+                    }
+                 }
+            }
+            mostrarErrorGlobal("Por favor corrija los errores en el formulario.");
+        }
+
+        function mostrarErrorGlobal(msg) {
+            const alerta = document.getElementById('globalError');
+            alerta.innerText = msg;
+            alerta.classList.remove('d-none');
+        }
+
+        function mostrarCargando(activo) {
+            const btn = document.getElementById('btnSubmit');
+            const spinner = btn.querySelector('.spinner-border');
+            if (activo) {
+                btn.disabled = true;
+                spinner.classList.remove('d-none');
+            } else {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+            }
+        }
+    </script>
+</div>
+</body>
+</html>
