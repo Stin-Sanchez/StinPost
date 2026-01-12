@@ -66,7 +66,7 @@ Sigue estos pasos para correr el proyecto en tu entorno local:
 
 **Sting Sánchez**
 * *Backend Developer en formación | Entusiasta de Java*
-* [LinkedIn](https://www.linkedin.com/in/stin-sanchez/)
+* [LinkedIn](https://www.linkedin.com/in/stin-s%C3%A1nchez/)
 
 
 ---
