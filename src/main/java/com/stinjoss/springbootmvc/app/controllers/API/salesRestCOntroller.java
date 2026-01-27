@@ -23,16 +23,14 @@ public class salesRestCOntroller {
     @Autowired
     private final SalesService service;
 
-    // 1. OBTENER TODAS LAS VENTAS
     @GetMapping
     public ResponseEntity<List<SalesResponseDTO>> list(@RequestParam(required = false) String state) {
         return ResponseEntity.ok(service.findByState(state));
     }
 
-    // 2. OBTENER VENTA POR ID
     @GetMapping("/{id}")
     public ResponseEntity<SalesResponseDTO> show(@PathVariable Long id) {
-        return service.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(service.findById(id));
     }
 
     @GetMapping("/search/{term}")
@@ -45,15 +43,11 @@ public class salesRestCOntroller {
         return ResponseEntity.ok(service.getDashboardStats());
     }
 
-
     @PostMapping
     public ResponseEntity<SalesResponseDTO> create(@Valid @RequestBody SalesRequestDTO saleRequest, HttpSession session) {
-        //Recuperamos al usuario logueado el cual sera el responsable de realizar las ventas
         UserResponseDTO sellerLogin = (UserResponseDTO) session.getAttribute("usuarioLogueado");
 
         if (sellerLogin == null) {
-            // Lanzamos excepción para que el GlobalExceptionHandler la capture
-            // O retornamos 401 directamente si prefieres
             throw new RuntimeException("Debe iniciar sesión para realizar una venta");
         }
 
@@ -61,11 +55,9 @@ public class salesRestCOntroller {
         return ResponseEntity.status(HttpStatus.CREATED).body(newSale);
     }
 
-    // 4. ELIMINAR VENTA
     @DeleteMapping("/{id}")
-    public ResponseEntity<SalesResponseDTO> delete(@PathVariable Long id) {
-        return service.anularVenta(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
-
+    public ResponseEntity<Void> anularVenta(@PathVariable Long id) {
+        service.anularVenta(id);
+        return ResponseEntity.noContent().build();
     }
-
 }

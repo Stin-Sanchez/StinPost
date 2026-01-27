@@ -12,17 +12,15 @@ public interface UserService {
 
     List<UserResponseDTO> findAll();
 
-    Optional<UserResponseDTO> findById(Long id);
+    UserResponseDTO findById(Long id);
 
     UserResponseDTO save(UserRequestDTO user, Long id);
 
-    Optional<UserResponseDTO> delete(Long id);
+    void delete(Long id);
 
+    // Métodos que no se tocaron
     List<UserResponseDTO> findByUsernameOrDni(String termino);
-
     Optional<UserResponseDTO> findByUsername(String termino);
-
     UserResponseDTO login(String username, String password);
-
     Long count();
 }

@@ -16,8 +16,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/products")
 @RequiredArgsConstructor
@@ -26,10 +24,8 @@ public class productRestController {
     @Autowired
     private ProductService service;
 
-    // 1. LISTAR TODOS (PAGINADO)
-    // Ejemplo: /api/products?page=0&size=10&state=DISPONIBLE
     @GetMapping()
-    public ResponseEntity<Page<ProductsResponseDTO>> filterByState(
+    public ResponseEntity<Page<ProductsResponseDTO>> listProducts(
             @RequestParam(required = false) String state,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -39,17 +35,24 @@ public class productRestController {
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
         
-        return ResponseEntity.ok(service.findByState(state, pageable));
+        Page<ProductsResponseDTO> resultPage;
+        
+        if (state != null && !state.isEmpty() && !state.equalsIgnoreCase("ALL")) {
+            // Si se especifica un estado, filtramos por él
+            resultPage = service.findByState(state, pageable);
+        } else {
+            // Si no, buscamos todos los productos activos
+            resultPage = service.findAll(pageable);
+        }
+        
+        return ResponseEntity.ok(resultPage);
     }
 
-
-    // 2. DETALLE POR ID
     @GetMapping("/{id}")
     public ResponseEntity<ProductsResponseDTO> details(@PathVariable Long id) {
-        return service.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(service.findById(id));
     }
     
-    // 3. CREAR
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ProductsResponseDTO> create(
             @Valid @ModelAttribute ProductRequestDTO product,
@@ -59,7 +62,6 @@ public class productRestController {
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
     }
 
-    // 4. BUSCAR (PAGINADO)
     @GetMapping("/search/{term}")
     public ResponseEntity<Page<ProductsResponseDTO>> buscar(
             @PathVariable String term,
@@ -70,8 +72,6 @@ public class productRestController {
         return ResponseEntity.ok(service.buscarPorTermino(term, pageable));
     }
 
-
-    // 5. EDITAR
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ProductsResponseDTO> update(
             @PathVariable Long id,
@@ -82,10 +82,9 @@ public class productRestController {
         return ResponseEntity.ok(editado);
     }
 
-    // 6. ELIMINAR
     @DeleteMapping("/{id}")
-    public ResponseEntity<ProductsResponseDTO> delete(@PathVariable Long id) {
-        return service.delete(id).map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        service.delete(id);
+        return ResponseEntity.noContent().build();
     }
 }

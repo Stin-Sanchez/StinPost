@@ -6,12 +6,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
-
+import java.util.Optional;
 
 public interface ClientRepository extends JpaRepository<Clients, Long> {
-    // SQL que genera: SELECT * FROM clients WHERE UPPER(name) LIKE UPPER('%termino%')
-    List<Clients> findByNameContainingIgnoreCase(String name);
-
+    
     List<Clients> findByActiveTrue();
 
     @Query("SELECT c FROM Clients c WHERE " +
@@ -19,4 +17,7 @@ public interface ClientRepository extends JpaRepository<Clients, Long> {
             "LOWER(c.lastname) LIKE LOWER(CONCAT('%', :term, '%')) OR " +
             "c.dni LIKE CONCAT('%', :term, '%')")
     List<Clients> findBYTerm(@Param("term") String term);
+
+    Optional<Clients> findByEmail(String email);
+    Optional<Clients> findByDni(String dni);
 }
