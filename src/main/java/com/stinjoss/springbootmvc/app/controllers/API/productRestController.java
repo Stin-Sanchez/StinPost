@@ -6,6 +6,10 @@ import com.stinjoss.springbootmvc.app.services.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,67 +26,66 @@ public class productRestController {
     @Autowired
     private ProductService service;
 
-    // 1. LISTAR TODOS
-    // Response: Enviamos DTOs al front para que pinte la lista
+    // 1. LISTAR TODOS (PAGINADO)
+    // Ejemplo: /api/products?page=0&size=10&state=DISPONIBLE
     @GetMapping()
-    public ResponseEntity<List<ProductsResponseDTO>> filterByStata(@RequestParam(required = false) String state) {
-        return ResponseEntity.ok(service.findByState(state));
+    public ResponseEntity<Page<ProductsResponseDTO>> filterByState(
+            @RequestParam(required = false) String state,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
+    ) {
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        return ResponseEntity.ok(service.findByState(state, pageable));
     }
 
 
     // 2. DETALLE POR ID
-    // Response: Enviamos un solo DTO con todos los detalles
-
     @GetMapping("/{id}")
     public ResponseEntity<ProductsResponseDTO> details(@PathVariable Long id) {
-        // El service ya debe devolver Optional<ProductResponseDTO>
         return service.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
     }
+    
     // 3. CREAR
-    // Request (Entrada): Datos del formulario (ProductRequestDTO)
-    // Response (Salida): El producto creado con su ID nuevo (ProductResponseDTO)
-
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ProductsResponseDTO> create(
-            @Valid @ModelAttribute ProductRequestDTO product,//valida inputs
-            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile // Recibe el archivo
+            @Valid @ModelAttribute ProductRequestDTO product,
+            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile
     ) {
-        // Pasamos null en el ID porque es creación
         ProductsResponseDTO nuevo = service.save(product, imageFile, null);
         return ResponseEntity.status(HttpStatus.CREATED).body(nuevo);
     }
 
-    // 4. BUSCAR
-    // Response: Lista de DTOs que coinciden
-
+    // 4. BUSCAR (PAGINADO)
     @GetMapping("/search/{term}")
-    public List<ProductsResponseDTO> buscar(@PathVariable String term) {
-        return service.buscarPorTermino(term); // Busca por nombre O código
+    public ResponseEntity<Page<ProductsResponseDTO>> buscar(
+            @PathVariable String term,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(service.buscarPorTermino(term, pageable));
     }
 
 
     // 5. EDITAR
-    // Request: Datos a modificar
-    // Response: Cómo quedó el producto final
     @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ProductsResponseDTO> update(
             @PathVariable Long id,
             @Valid @ModelAttribute ProductRequestDTO product,
             @RequestParam(value = "imageFile", required = false) MultipartFile imageFile
     ) {
-        // Pasamos el ID de la URL para que el service sepa cuál actualizar
         ProductsResponseDTO editado = service.save(product, imageFile, id);
         return ResponseEntity.ok(editado);
     }
 
     // 6. ELIMINAR
-    // Response: Devolvemos el DTO eliminado (opcional) o solo status OK
     @DeleteMapping("/{id}")
     public ResponseEntity<ProductsResponseDTO> delete(@PathVariable Long id) {
-        // El service.delete(id) debe devolver Optional<ProductResponseDTO>
         return service.delete(id).map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
-
-
 }

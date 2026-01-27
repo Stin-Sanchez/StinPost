@@ -33,7 +33,7 @@
                         <small class="text-muted d-block">Cliente Seleccionado:</small>
                         <strong class="text-primary" id="clientNameDisplay">Consumidor Final</strong>
                         <button class="btn btn-xs btn-outline-danger ms-2 d-none" id="btnResetClient"
-                                onclick="resetCliente()" title="Quitar cliente">
+                                title="Quitar cliente">
                             <i class="bi bi-x"></i>
                         </button>
                     </div>
@@ -67,7 +67,7 @@
                         </div>
                     </div>
 
-                    <button class="btn btn-success w-100 mt-3" onclick="agregarLinea()">
+                    <button class="btn btn-success w-100 mt-3" id="btnAgregarLinea">
                         <i class="bi bi-plus-circle"></i> Agregar a la Tabla
                     </button>
                 </div>
@@ -105,8 +105,7 @@
                 <div class="card-footer bg-white border-top-0 p-3">
                     <div class="row align-items-center">
                         <div class="col-md-6 mb-2 mb-md-0">
-                            <button class="btn btn-primary btn-lg w-100 shadow-sm" id="btnGuardarVenta"
-                                    onclick="guardarVenta()">
+                            <button class="btn btn-primary btn-lg w-100 shadow-sm" id="btnGuardarVenta">
                                 <i class="bi bi-currency-dollar"></i> REALIZAR VENTA
                             </button>
                         </div>
@@ -120,276 +119,7 @@
         </div>
     </div>
 
-    <script>
-        // --- CONFIGURACIÓN Y VARIABLES ---
-        document.getElementById('fechaHoy').innerText = new Date().toLocaleDateString();
-        let cart = []; // Carrito en memoria
-        let productoSeleccionadoTemp = null; // Para validar stock antes de agregar
-
-        // Formateador de dinero
-        const moneyFormatter = new Intl.NumberFormat('en-US', {
-            style: 'currency', currency: 'USD'
-        });
-
-        // --- UTILIDAD: DEBOUNCE (Para optimizar búsquedas) ---
-        const debounce = (func, wait) => {
-            let timeout;
-            return function(...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), wait);
-            };
-        };
-
-        // --- 1. LÓGICA DE CLIENTES ---
-        const inputClient = document.getElementById('searchClient');
-        const listClient = document.getElementById('clientSuggestions');
-
-        // Evento al escribir
-        inputClient.addEventListener('input', debounce(async (e) => {
-            const term = e.target.value.trim();
-            if (term.length < 2) { listClient.style.display = 'none'; return; }
-
-            try {
-                // LLAMADA API CLIENTES
-                const response = await fetch(`/api/clients/search/${term}`);
-                if(response.ok) {
-                    const clients = await response.json();
-                    renderClientSuggestions(clients);
-                }
-            } catch (error) { console.error("Error buscando clientes", error); }
-        }, 300));
-
-        function renderClientSuggestions(clients) {
-            listClient.innerHTML = '';
-            if (clients.length === 0) {
-                listClient.style.display = 'none';
-                return;
-            }
-
-            clients.forEach(c => {
-                const li = document.createElement('li');
-                li.className = 'list-group-item list-group-item-action cursor-pointer';
-                li.style.cursor = 'pointer';
-                li.innerHTML = `<div><strong>${c.name} ${c.lastname}</strong></div><small class="text-muted">DNI: ${c.dni}</small>`;
-                li.onclick = () => seleccionarCliente(c);
-                listClient.appendChild(li);
-            });
-            listClient.style.display = 'block';
-        }
-
-        function seleccionarCliente(c) {
-            document.getElementById('clientId').value = c.id;
-            document.getElementById('clientNameDisplay').innerText = `${c.name} ${c.lastname}`;
-            document.getElementById('btnResetClient').classList.remove('d-none');
-            inputClient.value = '';
-            listClient.style.display = 'none';
-        }
-
-        function resetCliente() {
-            document.getElementById('clientId').value = '';
-            document.getElementById('clientNameDisplay').innerText = 'Consumidor Final';
-            document.getElementById('btnResetClient').classList.add('d-none');
-        }
-
-        // --- 2. LÓGICA DE PRODUCTOS ---
-        const inputProduct = document.getElementById('searchProduct');
-        const listProduct = document.getElementById('productSuggestions');
-
-        inputProduct.addEventListener('input', debounce(async (e) => {
-            const term = e.target.value.trim();
-            if (term.length < 2) { listProduct.style.display = 'none'; return; }
-
-            try {
-                // LLAMADA API PRODUCTOS
-                const response = await fetch(`/api/products/search/${term}`);
-                if(response.ok) {
-                    const products = await response.json();
-                    renderProductSuggestions(products);
-                }
-            } catch (error) { console.error("Error buscando productos", error); }
-        }, 300));
-
-        function renderProductSuggestions(products) {
-            listProduct.innerHTML = '';
-            if (products.length === 0) { listProduct.style.display = 'none'; return; }
-
-            products.forEach(p => {
-                const li = document.createElement('li');
-                li.className = 'list-group-item list-group-item-action';
-                li.style.cursor = 'pointer';
-
-                // Color badge según stock
-                let stockBadge = p.stock > 0 ? `<span class="badge bg-success">${p.stock} un.</span>` : `<span class="badge bg-danger">Agotado</span>`;
-
-                li.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span>${p.nameProducto}</span>
-                        ${stockBadge}
-                    </div>
-                    <small class="text-muted">Código: ${p.code} | Precio: $${p.price}</small>
-                `;
-
-                if(p.stock > 0) {
-                    li.onclick = () => seleccionarProducto(p);
-                }
-                listProduct.appendChild(li);
-            });
-            listProduct.style.display = 'block';
-        }
-
-        function seleccionarProducto(p) {
-            document.getElementById('productId').value = p.id;
-            document.getElementById('searchProduct').value = p.nameProducto;
-            document.getElementById('productPrice').value = p.price;
-            document.getElementById('productQuantity').value = 1;
-            document.getElementById('productQuantity').focus();
-
-            productoSeleccionadoTemp = p; // Guardamos para validar stock al agregar
-            listProduct.style.display = 'none';
-        }
-
-        // --- 3. GESTIÓN DEL CARRITO (TABLA) ---
-        function agregarLinea() {
-            const id = document.getElementById('productId').value;
-            const name = document.getElementById('searchProduct').value;
-            const price = parseFloat(document.getElementById('productPrice').value);
-            const quantity = parseInt(document.getElementById('productQuantity').value);
-
-            if (!id) { alert("Debes buscar y seleccionar un producto de la lista."); return; }
-            if (quantity <= 0) { alert("La cantidad debe ser mayor a 0"); return; }
-
-            // Validar Stock
-            if(productoSeleccionadoTemp && quantity > productoSeleccionadoTemp.stock) {
-                alert(`Stock insuficiente. Solo quedan ${productoSeleccionadoTemp.stock} unidades.`);
-                return;
-            }
-
-            // Verificar si ya existe en carrito para sumar cantidad
-            const indexExistente = cart.findIndex(item => item.productId == id);
-
-            if (indexExistente !== -1) {
-                // Validar stock acumulado
-                if(productoSeleccionadoTemp && (cart[indexExistente].quantity + quantity) > productoSeleccionadoTemp.stock) {
-                     alert("No puedes agregar más de este producto, superas el stock disponible.");
-                     return;
-                }
-                cart[indexExistente].quantity += quantity;
-                cart[indexExistente].subtotal = cart[indexExistente].quantity * price;
-            } else {
-                cart.push({
-                    productId: id,
-                    name: name,
-                    price: price,
-                    quantity: quantity,
-                    subtotal: price * quantity
-                });
-            }
-
-            renderizarTabla();
-            limpiarInputsProducto();
-        }
-
-        function renderizarTabla() {
-            const tbody = document.getElementById('detailsTableBody');
-            tbody.innerHTML = '';
-            let totalGeneral = 0;
-
-            if (cart.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted p-4">El carrito está vacío. Agrega productos.</td></tr>`;
-                document.getElementById('granTotal').innerText = "$0.00";
-                return;
-            }
-
-            cart.forEach((item, index) => {
-                totalGeneral += item.subtotal;
-                const row = `
-                    <tr>
-                        <td>${item.name}</td>
-                        <td class="text-center">$${item.price.toFixed(2)}</td>
-                        <td class="text-center">${item.quantity}</td>
-                        <td class="text-end fw-bold">$${item.subtotal.toFixed(2)}</td>
-                        <td class="text-center">
-                            <button class="btn btn-sm btn-outline-danger" onclick="eliminarDelCarrito(${index})">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-                tbody.innerHTML += row;
-            });
-
-            document.getElementById('granTotal').innerText = moneyFormatter.format(totalGeneral);
-        }
-
-        function eliminarDelCarrito(index) {
-            cart.splice(index, 1);
-            renderizarTabla();
-        }
-
-        function limpiarInputsProducto() {
-            document.getElementById('productId').value = '';
-            document.getElementById('searchProduct').value = '';
-            document.getElementById('productPrice').value = '';
-            document.getElementById('productQuantity').value = 1;
-            productoSeleccionadoTemp = null;
-        }
-
-        // --- 4. GUARDAR VENTA (POST API) ---
-        async function guardarVenta() {
-            if (cart.length === 0) { alert("No puedes realizar una venta vacía."); return; }
-
-            // Animación de carga
-            const btn = document.getElementById('btnGuardarVenta');
-            const originalText = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Procesando...`;
-
-            // Construir JSON (SaleRequestDTO)
-            const ventaPayload = {
-                clientId: document.getElementById('clientId').value ? parseInt(document.getElementById('clientId').value) : null,
-                paymentMethods: "EFECTIVO",
-                details: cart.map(item => ({
-                    productId: parseInt(item.productId),
-                    quantity: item.quantity
-                }))
-            };
-
-            try {
-                const response = await fetch('/api/sales', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(ventaPayload)
-                });
-
-                if (response.ok) {
-                    const ventaCreada = await response.json();
-                    alert(`✅ Venta #${ventaCreada.id} realizada con éxito!`);
-
-                    // Resetear todo
-                    cart = [];
-                    renderizarTabla();
-                    resetCliente();
-
-                } else {
-                    const errorMsg = await response.text();
-                    alert("❌ Error al guardar venta: " + errorMsg);
-                }
-            } catch (error) {
-                console.error(error);
-                alert("❌ Error de conexión con el servidor");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-            }
-        }
-
-        // Cerrar listas si clic fuera
-        document.addEventListener('click', (e) => {
-            if (e.target.id !== 'searchClient') listClient.style.display = 'none';
-            if (e.target.id !== 'searchProduct') listProduct.style.display = 'none';
-        });
-
-    </script>
+    <script th:src="@{/js/sales.js}"></script>
 </div>
 
 </body>

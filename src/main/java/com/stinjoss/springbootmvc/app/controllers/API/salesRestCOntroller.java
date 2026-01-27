@@ -1,6 +1,7 @@
 package com.stinjoss.springbootmvc.app.controllers.API;
 
 import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.SalesRequestDTO;
+import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.DashboardStatsDTO;
 import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.SalesResponseDTO;
 import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.UserResponseDTO;
 import com.stinjoss.springbootmvc.app.services.SalesService;
@@ -12,10 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("api/sales")
@@ -42,45 +40,25 @@ public class salesRestCOntroller {
         return service.findByTerm(term);
     }
 
+    @GetMapping("/dashboard-stats")
+    public ResponseEntity<DashboardStatsDTO> getDashboardStats() {
+        return ResponseEntity.ok(service.getDashboardStats());
+    }
+
 
     @PostMapping
-    public ResponseEntity<?> create(@Valid @RequestBody SalesRequestDTO saleRequest, HttpSession session) {
-        Map<String, Object> response = new HashMap<>(); // Nuestro mapa de respuesta
+    public ResponseEntity<SalesResponseDTO> create(@Valid @RequestBody SalesRequestDTO saleRequest, HttpSession session) {
+        //Recuperamos al usuario logueado el cual sera el responsable de realizar las ventas
+        UserResponseDTO sellerLogin = (UserResponseDTO) session.getAttribute("usuarioLogueado");
 
-        try {
-
-            //Recuperamos al usuario logueado el cual sera el responsable de realizar las ventas
-            UserResponseDTO sellerLogin = (UserResponseDTO) session.getAttribute("usuarioLogueado");
-
-            if (sellerLogin == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Debe iniciar sesión");
-            }
-
-            SalesResponseDTO newSale = service.save(saleRequest, sellerLogin.getId());
-
-            return ResponseEntity.status(HttpStatus.CREATED).body(newSale);
-
-        } catch (RuntimeException e) {
-            // Error de Negocio (Stock insuficiente, cliente no existe, etc.)
-            response.put("éxito", false);
-            response.put("mensaje", "No se pudo procesar la venta");
-            response.put("error", e.getMessage());
-            response.put("timestamp", LocalDateTime.now());
-
-
-            return ResponseEntity.badRequest().body(response);
-
-        } catch (Exception e) {
-            // Error Crítico (Base de datos caída, NullPointer, etc.)
-            e.printStackTrace(); // Importante para ver el error en consola
-
-            response.put("éxito", false);
-            response.put("mensaje", "Error interno del servidor");
-            response.put("error", e.getMessage()); // Opcional: Ocultar en producción
-            response.put("timestamp", LocalDateTime.now());
-
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        if (sellerLogin == null) {
+            // Lanzamos excepción para que el GlobalExceptionHandler la capture
+            // O retornamos 401 directamente si prefieres
+            throw new RuntimeException("Debe iniciar sesión para realizar una venta");
         }
+
+        SalesResponseDTO newSale = service.save(saleRequest, sellerLogin.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(newSale);
     }
 
     // 4. ELIMINAR VENTA
