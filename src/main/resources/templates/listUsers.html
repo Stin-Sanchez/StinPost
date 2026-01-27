@@ -1,48 +1,71 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <title th:text="${title}"> Hola mundo spring boot</title>
-    <link crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" rel="stylesheet">
-    <script crossorigin="anonymous"
-            integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
-            src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-</head>
+<html th:replace="~{fragments/layout :: plantilla(~{::body})}" xmlns:th="http://www.thymeleaf.org">
+
 <body>
-<div class="alert alert-danger " th:if="${error != null}" th:text="${error}"></div>
-<div class="alert alert-success " th:if="${success != null}" th:text="${success}"></div>
-<div class="container my-4">
-    <h3 th:text="${title}"></h3>
-    <a class="btn btn-secondary" th:href="@{/users/form}" th:text="'Create user (+)'"></a>
-    <div th:if="${#lists.isEmpty(users)}" th:text="'No hay usuarios en el sistema '"></div>
-    <table class="table table-hover table-striped" th:if="${not #lists.isEmpty(users)}">
-        <thead>
-        <tr>
-            <th>id</th>
-            <th>name</th>
-            <th>lastname</th>
-            <th>email</th>
-            <th>create at</th>
-            <th>edit</th>
-            <th>remove</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="user: ${users}">
-            <td th:text="${user.id}"></td>
-            <td th:text="${user.name}"></td>
-            <td th:text="${user.lastname}"></td>
-            <td th:text="${user.email}"></td>
-            <td th:text="${user.createdAt}"></td>
-            <td><a class="btn btn-sm btn-primary" th:href="@{/users/form/} + ${user.id}">Edit</a></td>
-            <td><a class="btn btn-sm btn-danger" th:href="@{/users/delete/} + ${user.id}">Delete</a></td>
-            onclick= "return confirm('¿Estas seguro que deseas eliminar este usuario?, esta opción es irreversible')";
-        </tr>
-        </tbody>
-    </table>
+<div th:fragment="content">
 
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Gestión de Usuarios</h2>
+        <a class="btn btn-primary" th:href="@{/users/form}">
+            <i class="bi bi-person-plus-fill"></i> Nuevo Usuario
+        </a>
+    </div>
+
+    <form class="row g-3 mb-4" onsubmit="event.preventDefault()">
+        <div class="col-md-8">
+            <div class="input-group">
+            <span class="input-group-text bg-white text-muted">
+                <i class="bi bi-search"></i>
+            </span>
+                <input class="form-control border-start-0 ps-0" id="inputSearch"
+                       placeholder="Buscar por nombre, apellido o usuario..." type="text">
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="input-group">
+                <label class="input-group-text bg-light" for="inputState">
+                    <i class="bi bi-funnel-fill me-2"></i> Filtrar
+                </label>
+                <select class="form-select" id="inputState">
+                    <option selected>Todos</option>
+                    <option value="1">Activos</option>
+                    <option value="2">Inactivos</option>
+                </select>
+            </div>
+        </div>
+    </form>
+
+    <div id="alert-container"></div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-striped table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Nombre</th>
+                    <th scope="col">Apellido</th>
+                    <th scope="col">Usuario</th>
+                    <th scope="col">Email</th>
+                    <th scope="col">Creado</th>
+                    <th scope="col">Acciones</th>
+                </tr>
+                </thead>
+                <tbody id="table-users-body">
+                <tr>
+                    <td class="text-center p-4" colspan="7">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Cargando...</span>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script th:src="@{/js/users.js}"></script>
 </div>
-
 </body>
 </html>

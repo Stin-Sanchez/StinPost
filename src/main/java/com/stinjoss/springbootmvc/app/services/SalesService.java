@@ -1,6 +1,7 @@
 package com.stinjoss.springbootmvc.app.services;
 
 import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.SalesRequestDTO;
+import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.DashboardStatsDTO;
 import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.SalesResponseDTO;
 
 import java.util.List;
@@ -23,4 +24,6 @@ public interface SalesService {
     List<SalesResponseDTO> findByTerm(String term);
 
     Long count();
+
+    DashboardStatsDTO getDashboardStats();
 }

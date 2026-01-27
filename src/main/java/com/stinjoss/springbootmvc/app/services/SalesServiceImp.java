@@ -7,10 +7,14 @@ import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.SalesDetailsRe
 import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.SalesRequestDTO;
 import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.*;
 import com.stinjoss.springbootmvc.app.repositories.*;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,13 +29,15 @@ public class SalesServiceImp implements SalesService {
     private final ClientRepository clientRepository;
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
+    private final SalesDetailsRepository salesDetailsRepository;
 
-    public SalesServiceImp(SalesRepository repository, InvoiceRepository invoiceRepository, ClientRepository clientRepository, UserRepository userRepository, ProductRepository productRepository) {
+    public SalesServiceImp(SalesRepository repository, InvoiceRepository invoiceRepository, ClientRepository clientRepository, UserRepository userRepository, ProductRepository productRepository, SalesDetailsRepository salesDetailsRepository) {
         this.repository = repository;
         this.invoiceRepository = invoiceRepository;
         this.clientRepository = clientRepository;
         this.userRepository = userRepository;
         this.productRepository = productRepository;
+        this.salesDetailsRepository = salesDetailsRepository;
     }
 
     @Transactional
@@ -303,6 +309,57 @@ public class SalesServiceImp implements SalesService {
     @Override
     public Long count() {
         return repository.count();
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public DashboardStatsDTO getDashboardStats() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = now.toLocalDate().atTime(LocalTime.MAX);
+
+        LocalDateTime startOfMonth = now.toLocalDate().withDayOfMonth(1).atStartOfDay();
+        LocalDateTime endOfMonth = now.toLocalDate().withDayOfMonth(now.toLocalDate().lengthOfMonth()).atTime(LocalTime.MAX);
+
+        // 1. Ventas de hoy
+        BigDecimal totalToday = repository.sumTotalSalesByDateRange(startOfDay, endOfDay);
+        if (totalToday == null) totalToday = BigDecimal.ZERO;
+
+        Long countToday = repository.countSalesByDateRange(startOfDay, endOfDay);
+        if (countToday == null) countToday = 0L;
+
+        // 2. Ventas del mes
+        BigDecimal totalMonth = repository.sumTotalSalesByDateRange(startOfMonth, endOfMonth);
+        if (totalMonth == null) totalMonth = BigDecimal.ZERO;
+
+        // 3. Productos con stock bajo
+        Long lowStockCount = productRepository.countLowStockProducts();
+        if (lowStockCount == null) lowStockCount = 0L;
+        
+        // 4. Últimas 5 ventas
+        List<SalesResponseDTO> recentSales = repository.findTop5ByOrderByCreatedAtDesc()
+                .stream().map(this::mapToResponse).collect(Collectors.toList());
+
+        // 5. Top 5 Productos más vendidos
+        List<TopProductDTO> topProducts = salesDetailsRepository.findTopSellingProducts(PageRequest.of(0, 5));
+        
+        // 6. Gráfico: Últimos 7 días
+        LocalDateTime sevenDaysAgo = now.minusDays(7).toLocalDate().atStartOfDay();
+        List<Object[]> chartRawData = repository.findDailySalesSum(sevenDaysAgo);
+        
+        List<String> labels = new ArrayList<>();
+        List<BigDecimal> data = new ArrayList<>();
+        
+        for (Object[] row : chartRawData) {
+            // row[0] es la fecha (puede venir como Date o String dependiendo de la DB)
+            // row[1] es el total
+            labels.add(row[0].toString());
+            data.add((BigDecimal) row[1]);
+        }
+        
+        ChartDataDTO chartData = new ChartDataDTO(labels, data);
+
+        return new DashboardStatsDTO(totalToday, countToday, totalMonth, lowStockCount, recentSales, topProducts, chartData);
     }
 
     // --- MÉTODO AUXILIAR PARA CALCULAR EL NÚMERO "FAC-000001" ---

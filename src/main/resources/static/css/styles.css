@@ -3,7 +3,6 @@ body {
 }
 
 #wrapper {
-    /* Esto ya lo hace el d-flex de Bootstrap, pero lo dejamos por seguridad */
     display: flex;
     width: 100%;
     align-items: stretch;
@@ -11,40 +10,55 @@ body {
 
 #sidebar-wrapper {
     min-height: 100vh;
-    width: 250px;       /* Ancho FIJO */
-    margin-left: 0;     /* Siempre visible por defecto */
-    flex-shrink: 0;     /* PROHIBIDO encogerse */
+    width: 250px;
+    margin-left: 0;
+    flex-shrink: 0;
     transition: all 0.25s ease-out;
 }
 
 #page-content-wrapper {
     width: 100%;
-    flex-grow: 1;       /* Ocupa todo el espacio sobrante */
+    flex-grow: 1;
+    /* IMPORTANTE: Esto evita que el contenido empuje el ancho más allá del viewport */
+    min-width: 0;
 }
 
-/* Opcional: Solo si quisieras esconder el menú en pantallas muy pequeñas (celulares) */
+/* --- CORRECCIÓN DE TABLAS --- */
+.table-responsive {
+    /* Asegura que el scroll aparezca DENTRO de la tarjeta y no rompa el layout */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Evita que las celdas se rompan feo */
+.table td, .table th {
+    vertical-align: middle;
+    white-space: nowrap; /* Mantiene el texto en una línea */
+}
+
+/* Excepción para columnas que SÍ queremos que hagan salto de línea (ej: Descripción) */
+.table td.text-wrap {
+    white-space: normal;
+}
+
 @media (max-width: 768px) {
     #sidebar-wrapper {
-        margin-left: -250px; /* Se esconde a la izquierda */
+        margin-left: -250px;
     }
 }
 
-/* Color personalizado para "Casi Agotado" */
 .bg-orange {
-    background-color: #fd7e14 !important; /* Naranja vibrante */
-    color: #fff !important; /* Texto blanco para contraste */
+    background-color: #fd7e14 !important;
+    color: #fff !important;
 }
 
-/* Ajuste opcional para que el Warning (Amarillo) resalte más */
 .bg-warning {
     background-color: #ffc107 !important;
-    color: #000 !important; /* Texto negro para leer bien sobre amarillo */
+    color: #000 !important;
 }
 
-/* Hacemos los badges un poco más grandes y legibles */
 .badge {
     font-size: 0.85em;
     padding: 0.5em 0.8em;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Sombra suave */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-

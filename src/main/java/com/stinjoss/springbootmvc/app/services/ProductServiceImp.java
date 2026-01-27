@@ -5,7 +5,11 @@ import com.stinjoss.springbootmvc.app.domain.entities.enums.StatesProducts;
 import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.ProductRequestDTO;
 import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.ProductsResponseDTO;
 import com.stinjoss.springbootmvc.app.repositories.ProductRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +26,7 @@ import java.util.stream.Collectors;
 @Service
 public class ProductServiceImp implements ProductService {
 
+    private static final Logger log = LoggerFactory.getLogger(ProductServiceImp.class);
     private final ProductRepository repository;
 
     @Value("${upload.dir}") // Inyectamos la ruta desde application.properties
@@ -33,9 +38,11 @@ public class ProductServiceImp implements ProductService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<ProductsResponseDTO> findAll() {
-        return this.repository.findByActiveTrue().stream().map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public Page<ProductsResponseDTO> findAll(Pageable pageable) {
+        log.info("Buscando todos los productos activos, página: {}, tamaño: {}", pageable.getPageNumber(), pageable.getPageSize());
+        Page<Products> productsPage = repository.findByActiveTrue(pageable);
+        log.info("Encontrados {} productos en total, {} en esta página.", productsPage.getTotalElements(), productsPage.getNumberOfElements());
+        return productsPage.map(this::mapToResponse);
     }
 
     @Transactional(readOnly = true)
@@ -46,38 +53,36 @@ public class ProductServiceImp implements ProductService {
 
     @Transactional(readOnly = true)
     @Override
-    public List<ProductsResponseDTO> buscarPorTermino(String termino) {
+    public Page<ProductsResponseDTO> buscarPorTermino(String termino, Pageable pageable) {
+        log.info("Buscando productos por término: '{}', página: {}", termino, pageable.getPageNumber());
         if (termino == null || termino.isEmpty()) {
-            return new ArrayList<>();
+            return Page.empty();
         }
-        return repository.buscarPorCodigoONombre(termino).stream().map(this::mapToResponse)
-                .collect(Collectors.toList());
+        Page<Products> productsPage = repository.buscarPorCodigoONombre(termino, pageable);
+        log.info("Búsqueda por término '{}' encontró {} resultados.", termino, productsPage.getTotalElements());
+        return productsPage.map(this::mapToResponse);
     }
 
 
     @Transactional(readOnly = true)
     @Override
-    public List<ProductsResponseDTO> findByState(String state) {
-        List<Products> lista;
-
-        // 1. Si viene vacío, nulo o dice "Todos", devolvemos todo
-        if (state == null || state.isEmpty() || state.equals("Todos")) {
-            lista = repository.findAll();
+    public Page<ProductsResponseDTO> findByState(String state, Pageable pageable) {
+        log.info("Filtrando productos por estado: '{}', página: {}", state, pageable.getPageNumber());
+        if (state == null || state.isEmpty() || state.equalsIgnoreCase("ALL")) {
+            Page<Products> allProducts = repository.findAll(pageable);
+            log.info("Mostrando todos los productos (sin filtro de estado). Total: {}", allProducts.getTotalElements());
+            return allProducts.map(this::mapToResponse);
         } else {
             try {
-                // 2. Convertimos el String (ej: "AGOTADO") al Enum real
-                StatesProducts estadoEnum = StatesProducts.valueOf(state);
-                lista = repository.findByState(estadoEnum);
+                StatesProducts estadoEnum = StatesProducts.valueOf(state.toUpperCase());
+                Page<Products> productsPage = repository.findByState(estadoEnum, pageable);
+                log.info("Filtro por estado '{}' encontró {} resultados.", estadoEnum, productsPage.getTotalElements());
+                return productsPage.map(this::mapToResponse);
             } catch (IllegalArgumentException e) {
-                // Si mandan un estado que no existe, devolvemos lista vacía
-                return Collections.emptyList();
+                log.warn("Intento de filtrar por estado inválido: {}", state);
+                return Page.empty();
             }
         }
-
-        // 3. Mapeamos a DTO
-        return lista.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
     }
 
     @Transactional
@@ -85,19 +90,14 @@ public class ProductServiceImp implements ProductService {
     public ProductsResponseDTO save(ProductRequestDTO request, MultipartFile imageFile, Long id) {
         Products productDB;
 
-        // 1. LÓGICA DE EDICIÓN (UPDATE)
         if (id != null && id > 0) {
-            // Buscamos el producto. Si no existe, lanzamos error controlado.
             productDB = repository.findById(id)
                     .orElseThrow(() -> new RuntimeException("No se encontró el producto con ID: " + id));
-
         } else {
             productDB = new Products();
             productDB.setActive(true);
         }
 
-        // --- MAPEO DE CAMPOS COMUNES (DTO -> ENTIDAD) ---
-        // Estos datos se actualizan tanto al crear como al editar
         productDB.setCode(request.getCode());
         productDB.setNameProducto(request.getNameProducto());
         productDB.setDescription(request.getDescription());
@@ -108,9 +108,6 @@ public class ProductServiceImp implements ProductService {
         productDB.setState(request.getState());
         productDB.setExpirationDate(request.getExpirationDate());
 
-
-        // --- MANEJO DE IMAGEN EN EDICIÓN ---
-        // Solo cambiamos la imagen si el usuario subió una NUEVA
         if (imageFile != null && !imageFile.isEmpty()) {
             String imagePath = guardarArchivo(imageFile);
             productDB.setImage(imagePath);
@@ -120,25 +117,15 @@ public class ProductServiceImp implements ProductService {
         return mapToResponse(saveProduct);
     }
 
-    // --- MÉTODO AUXILIAR PRIVADO PARA GUARDAR EN DISCO ---
     private String guardarArchivo(MultipartFile file) {
         try {
-            // Generar nombre único: "uuid_nombrefoto.jpg"
             String filename = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-
-            // Ruta absoluta
             Path rootPath = Paths.get(uploadDir);
             if (!Files.exists(rootPath)) {
                 Files.createDirectories(rootPath);
             }
-
-            // Guardar bytes
             Files.copy(file.getInputStream(), rootPath.resolve(filename), StandardCopyOption.REPLACE_EXISTING);
-
-            // Retornar la ruta web relativa (lo que se guarda en BD)
-            // Asegúrate que coincida con tu WebConfig: /uploads/products/...
             return "/uploads/products/" + filename;
-
         } catch (IOException e) {
             throw new RuntimeException("Error al guardar imagen: " + e.getMessage());
         }
@@ -146,7 +133,6 @@ public class ProductServiceImp implements ProductService {
 
     @Override
     public Optional<ProductsResponseDTO> delete(Long id) {
-        //Buscamos el producto
         Optional<Products> productsOptional = repository.findById(id);
         if (productsOptional.isPresent()) {
             Products product = productsOptional.get();
@@ -163,8 +149,6 @@ public class ProductServiceImp implements ProductService {
         return repository.count();
     }
 
-
-    //Mapper
     private ProductsResponseDTO mapToResponse(Products entity) {
         ProductsResponseDTO dto = new ProductsResponseDTO();
         dto.setId(entity.getId());

@@ -2,37 +2,140 @@
 <html th:replace="~{fragments/layout :: plantilla(~{::body})}"
       xmlns:th="http://www.thymeleaf.org">
 <body>
-<h2 class="mb-4">Dashboard General</h2>
+<h2 class="mb-4 fw-light">Dashboard General</h2>
 
-<div class="row g-3">
+<!-- Tarjetas Superiores (Minimalistas) -->
+<div class="row g-3 mb-4">
+    <!-- Tarjeta de Ventas del Día -->
     <div class="col-md-4">
-        <div class="card text-white bg-primary mb-3 h-100">
-            <div class="card-header">Total Clientes</div>
-            <div class="card-body">
-                <h1 class="card-title"><i class="bi bi-people"></i> 150</h1>
-                <p class="card-text">Clientes registrados este mes.</p>
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body d-flex align-items-center">
+                <div>
+                    <h6 class="card-subtitle text-muted mb-1">Ventas del Día</h6>
+                    <h3 class="card-title mb-0 fw-bold">
+                        $<span th:text="${stats.totalSalesToday}">0.00</span>
+                    </h3>
+                    <small class="text-muted">
+                        <span th:text="${stats.salesCountToday}">0</span> transacciones
+                    </small>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Tarjeta de Ventas del Mes -->
     <div class="col-md-4">
-        <div class="card text-white bg-success mb-3 h-100">
-            <div class="card-header">Ventas del Día</div>
-            <div class="card-body">
-                <h1 class="card-title"><i class="bi bi-currency-dollar"></i> 1,200</h1>
-                <p class="card-text">Total facturado hoy.</p>
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body d-flex align-items-center">
+                <div>
+                    <h6 class="card-subtitle text-muted mb-1">Ventas del Mes</h6>
+                    <h3 class="card-title mb-0 fw-bold">
+                        $<span th:text="${stats.totalSalesMonth}">0.00</span>
+                    </h3>
+                    <small class="text-muted">Acumulado mensual</small>
+                </div>
             </div>
         </div>
     </div>
+
+    <!-- Tarjeta de Stock Bajo -->
     <div class="col-md-4">
-        <div class="card text-white bg-warning mb-3 h-100">
-            <div class="card-header">Productos Bajos</div>
-            <div class="card-body">
-                <h1 class="card-title"><i class="bi bi-exclamation-triangle"></i> 5</h1>
-                <p class="card-text">Productos con stock crítico.</p>
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body d-flex align-items-center">
+                <div>
+                    <h6 class="card-subtitle text-muted mb-1">Alertas de Stock</h6>
+                    <h3 class="card-title mb-0 fw-bold">
+                        <span th:text="${stats.lowStockCount}">0</span>
+                    </h3>
+                    <small class="text-muted">Productos críticos</small>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Sección Central: Gráfico y Top Productos -->
+<div class="row g-3 mb-4">
+    <!-- Gráfico de Ventas -->
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 pt-3 pb-0">
+                <h6 class="card-title mb-0"><i class="bi bi-bar-chart-line"></i> Ventas Últimos 7 Días</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="salesChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Productos -->
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-white border-0 pt-3 pb-0">
+                <h6 class="card-title mb-0"><i class="bi bi-trophy"></i> Top 5 Productos</h6>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item border-0 px-0 d-flex justify-content-between align-items-center"
+                        th:each="prod, iterStat : ${stats.topProducts}">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-light text-dark me-2" th:text="${iterStat.count}">1</span>
+                            <span th:text="${prod.productName}">Producto A</span>
+                        </div>
+                        <span class="fw-bold" th:text="${prod.totalSold}">10</span>
+                    </li>
+                    <li class="list-group-item border-0 text-center text-muted" th:if="${#lists.isEmpty(stats.topProducts)}">
+                        No hay datos suficientes
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sección Inferior: Tabla Últimas Ventas -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white border-0 pt-3 pb-0">
+        <h6 class="card-title mb-0"><i class="bi bi-clock-history"></i> Últimas Transacciones</h6>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th class="border-0"># Factura</th>
+                    <th class="border-0">Cliente</th>
+                    <th class="border-0">Total</th>
+                    <th class="border-0">Fecha</th>
+                    <th class="border-0">Estado</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="sale : ${stats.recentSales}">
+                    <td class="fw-bold text-primary" th:text="${sale.invoice != null ? sale.invoice.numberInvoice : 'N/A'}">FAC-001</td>
+                    <td th:text="${sale.client.fullName}">Juan Perez</td>
+                    <td class="fw-bold" th:text="'$' + ${sale.total}">$100.00</td>
+                    <td class="text-muted" th:text="${#temporals.format(sale.createdAt, 'dd/MM/yyyy HH:mm')}">01/01/2023</td>
+                    <td>
+                        <span class="badge bg-success bg-opacity-10 text-success" th:if="${sale.estado.name() == 'FACTURADA'}">Facturada</span>
+                        <span class="badge bg-danger bg-opacity-10 text-danger" th:if="${sale.estado.name() == 'ANULADA'}">Anulada</span>
+                    </td>
+                </tr>
+                <tr th:if="${#lists.isEmpty(stats.recentSales)}">
+                    <td colspan="5" class="text-center text-muted py-3">No hay ventas recientes</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Elemento oculto para pasar datos al JS -->
+<script id="chartData" type="application/json" th:utext="${chartDataJson}"></script>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script th:src="@{/js/dashboard.js}"></script>
 
 </body>
 </html>
