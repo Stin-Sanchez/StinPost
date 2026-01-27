@@ -4,6 +4,8 @@ import com.stinjoss.springbootmvc.app.domain.entities.Products;
 import com.stinjoss.springbootmvc.app.domain.entities.enums.StatesProducts;
 import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.ProductRequestDTO;
 import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.ProductsResponseDTO;
+import com.stinjoss.springbootmvc.app.exceptions.DuplicateResourceException;
+import com.stinjoss.springbootmvc.app.exceptions.ResourceNotFoundException;
 import com.stinjoss.springbootmvc.app.repositories.ProductRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,9 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Service
 public class ProductServiceImp implements ProductService {
@@ -29,7 +29,7 @@ public class ProductServiceImp implements ProductService {
     private static final Logger log = LoggerFactory.getLogger(ProductServiceImp.class);
     private final ProductRepository repository;
 
-    @Value("${upload.dir}") // Inyectamos la ruta desde application.properties
+    @Value("${upload.dir}")
     private String uploadDir;
 
     public ProductServiceImp(ProductRepository repository) {
@@ -47,8 +47,10 @@ public class ProductServiceImp implements ProductService {
 
     @Transactional(readOnly = true)
     @Override
-    public Optional<ProductsResponseDTO> findById(Long id) {
-        return repository.findById(id).map(this::mapToResponse);
+    public ProductsResponseDTO findById(Long id) {
+        return repository.findById(id)
+                .map(this::mapToResponse)
+                .orElseThrow(() -> new ResourceNotFoundException("Producto no encontrado con ID: " + id));
     }
 
     @Transactional(readOnly = true)
@@ -63,58 +65,73 @@ public class ProductServiceImp implements ProductService {
         return productsPage.map(this::mapToResponse);
     }
 
-
     @Transactional(readOnly = true)
     @Override
     public Page<ProductsResponseDTO> findByState(String state, Pageable pageable) {
         log.info("Filtrando productos por estado: '{}', página: {}", state, pageable.getPageNumber());
-        if (state == null || state.isEmpty() || state.equalsIgnoreCase("ALL")) {
-            Page<Products> allProducts = repository.findAll(pageable);
-            log.info("Mostrando todos los productos (sin filtro de estado). Total: {}", allProducts.getTotalElements());
-            return allProducts.map(this::mapToResponse);
-        } else {
-            try {
-                StatesProducts estadoEnum = StatesProducts.valueOf(state.toUpperCase());
-                Page<Products> productsPage = repository.findByState(estadoEnum, pageable);
-                log.info("Filtro por estado '{}' encontró {} resultados.", estadoEnum, productsPage.getTotalElements());
-                return productsPage.map(this::mapToResponse);
-            } catch (IllegalArgumentException e) {
-                log.warn("Intento de filtrar por estado inválido: {}", state);
-                return Page.empty();
-            }
+        try {
+            StatesProducts estadoEnum = StatesProducts.valueOf(state.toUpperCase());
+            Page<Products> productsPage = repository.findByState(estadoEnum, pageable);
+            log.info("Filtro por estado '{}' encontró {} resultados.", estadoEnum, productsPage.getTotalElements());
+            return productsPage.map(this::mapToResponse);
+        } catch (IllegalArgumentException e) {
+            log.warn("Intento de filtrar por estado inválido: {}", state);
+            return Page.empty();
         }
     }
 
     @Transactional
     @Override
     public ProductsResponseDTO save(ProductRequestDTO request, MultipartFile imageFile, Long id) {
-        Products productDB;
+        repository.findByCode(request.getCode()).ifPresent(product -> {
+            if (id == null || !product.getId().equals(id)) {
+                throw new DuplicateResourceException("El código de producto '" + request.getCode() + "' ya existe.");
+            }
+        });
 
+        Products product;
         if (id != null && id > 0) {
-            productDB = repository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("No se encontró el producto con ID: " + id));
+            product = repository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("No se puede actualizar. Producto no encontrado con ID: " + id));
         } else {
-            productDB = new Products();
-            productDB.setActive(true);
+            product = new Products();
+            product.setActive(true);
         }
 
-        productDB.setCode(request.getCode());
-        productDB.setNameProducto(request.getNameProducto());
-        productDB.setDescription(request.getDescription());
-        productDB.setMarca(request.getMarca());
-        productDB.setPrice(request.getPrice());
-        productDB.setStock(request.getStock());
-        productDB.setMinStock(request.getMinStock());
-        productDB.setState(request.getState());
-        productDB.setExpirationDate(request.getExpirationDate());
+        product.setCode(request.getCode());
+        product.setNameProducto(request.getNameProducto());
+        product.setDescription(request.getDescription());
+        product.setMarca(request.getMarca());
+        product.setPrice(request.getPrice());
+        product.setStock(request.getStock());
+        product.setMinStock(request.getMinStock());
+        product.setState(request.getState());
+        product.setExpirationDate(request.getExpirationDate());
 
         if (imageFile != null && !imageFile.isEmpty()) {
             String imagePath = guardarArchivo(imageFile);
-            productDB.setImage(imagePath);
+            product.setImage(imagePath);
         }
 
-        Products saveProduct = repository.save(productDB);
-        return mapToResponse(saveProduct);
+        Products savedProduct = repository.save(product);
+        return mapToResponse(savedProduct);
+    }
+
+    @Transactional
+    @Override
+    public void delete(Long id) {
+        Products product = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("No se puede eliminar. Producto no encontrado con ID: " + id));
+
+        product.setActive(false);
+        product.setState(StatesProducts.AGOTADO);
+        repository.save(product);
+    }
+
+    @Transactional(readOnly = true)
+    @Override
+    public Long count() {
+        return repository.count();
     }
 
     private String guardarArchivo(MultipartFile file) {
@@ -129,24 +146,6 @@ public class ProductServiceImp implements ProductService {
         } catch (IOException e) {
             throw new RuntimeException("Error al guardar imagen: " + e.getMessage());
         }
-    }
-
-    @Override
-    public Optional<ProductsResponseDTO> delete(Long id) {
-        Optional<Products> productsOptional = repository.findById(id);
-        if (productsOptional.isPresent()) {
-            Products product = productsOptional.get();
-            product.setActive(false);
-            product.setState(StatesProducts.AGOTADO);
-            repository.save(product);
-            return productsOptional.map(this::mapToResponse);
-        }
-        return Optional.empty();
-    }
-
-    @Override
-    public Long count() {
-        return repository.count();
     }
 
     private ProductsResponseDTO mapToResponse(Products entity) {

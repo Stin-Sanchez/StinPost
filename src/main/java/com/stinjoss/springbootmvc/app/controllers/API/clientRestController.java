@@ -21,52 +21,36 @@ public class clientRestController {
     @Autowired
     private final ClientService clientService;
 
-    // 1. LISTAR TODOS
-    // Response: Enviamos DTOs al front para que pinte la lista
     @GetMapping
     public ResponseEntity<List<ClientResponseDTO>> listClients() {
         return ResponseEntity.ok(clientService.findAll());
     }
 
-    //Busca por id
     @GetMapping("/{id}")
     public ResponseEntity<ClientResponseDTO> details(@PathVariable Long id) {
-        return clientService.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+        return ResponseEntity.ok(clientService.findById(id));
     }
 
-
-    // 3. CREAR
-    // Request (Entrada): Datos del formulario
-    // Response (Salida): El cliente creado con su ID nuevo
     @PostMapping
     public ResponseEntity<ClientResponseDTO> create(@Valid @RequestBody ClientRequestDTO client) {
-        ClientResponseDTO neWClient = clientService.save(client, null);
-        return ResponseEntity.status(HttpStatus.CREATED).body(neWClient);
+        ClientResponseDTO newClient = clientService.save(client, null);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newClient);
     }
 
-    // 5. EDITAR
-    // Request: Datos a modificar
-    // Response: Cómo quedó el cliente final
     @PutMapping("/{id}")
     public ResponseEntity<ClientResponseDTO> update(@PathVariable Long id, @Valid @RequestBody ClientRequestDTO client) {
-        // Solo aseguramos que el ID del objeto coincida con el de la URL
-        ClientResponseDTO clienteEdit = clientService.save(client, id);
-        // Llamamos al MISMO método save. Él sabrá que es una edición por el ID.
-        return ResponseEntity.ok(clienteEdit);
+        ClientResponseDTO clientEdit = clientService.save(client, id);
+        return ResponseEntity.ok(clientEdit);
     }
-
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ClientResponseDTO> delete(@PathVariable Long id) {
-        return clientService.delete(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        clientService.delete(id);
+        return ResponseEntity.noContent().build();
     }
-
 
     @GetMapping("/search/{term}")
     public List<ClientResponseDTO> buscar(@PathVariable String term) {
-        return clientService.findByFullNameOrDni(term); //busca por nombre completo o dni
+        return clientService.findByFullNameOrDni(term);
     }
-
 }
-
-

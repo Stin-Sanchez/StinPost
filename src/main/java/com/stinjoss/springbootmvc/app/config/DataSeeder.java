@@ -18,11 +18,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 @Component
 public class DataSeeder implements CommandLineRunner {
@@ -40,28 +36,28 @@ public class DataSeeder implements CommandLineRunner {
     @Override
     public void run(String... args) throws Exception {
         System.out.println("🚀 Iniciando DataSeeder...");
-        
+
         long countClients = clientRepository.count();
         System.out.println("📊 Clientes actuales en BD: " + countClients);
 
         if (countClients == 0) {
             seedClients();
         } else {
-            System.out.println("⚠️ OMITIDO: Ya existen clientes en la base de datos.");
+            System.out.println("OMITIDO: Ya existen clientes en la base de datos.");
         }
 
         long countProducts = productRepository.count();
-        System.out.println("📊 Productos actuales en BD: " + countProducts);
+        System.out.println("Productos actuales en BD: " + countProducts);
 
         if (countProducts == 0) {
             seedProducts();
         } else {
-            System.out.println("⚠️ OMITIDO: Ya existen productos en la base de datos.");
+            System.out.println("OMITIDO: Ya existen productos en la base de datos.");
         }
     }
 
     private void seedClients() {
-        System.out.println("🌱 Intentando descargar Clientes desde RandomUser.me...");
+        System.out.println("Intentando descargar Clientes desde RandomUser.me...");
         String url = "https://randomuser.me/api/?results=500&nat=es&inc=name,email,cell,dob,location,id";
 
         try {
@@ -70,9 +66,9 @@ public class DataSeeder implements CommandLineRunner {
             HttpEntity<String> entity = new HttpEntity<>(headers);
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-            
+
             if (!response.getStatusCode().is2xxSuccessful()) {
-                System.err.println("❌ La API respondió con error: " + response.getStatusCode());
+                System.err.println("La API respondió con error: " + response.getStatusCode());
                 return;
             }
 
@@ -87,9 +83,9 @@ public class DataSeeder implements CommandLineRunner {
 
             for (JsonNode node : results) {
                 String email = node.path("email").asText();
-                
+
                 if (emailsProcesados.contains(email)) {
-                    continue; 
+                    continue;
                 }
                 emailsProcesados.add(email);
 
@@ -97,24 +93,24 @@ public class DataSeeder implements CommandLineRunner {
                 c.setName(node.path("name").path("first").asText());
                 c.setLastname(node.path("name").path("last").asText());
                 c.setEmail(email);
-                
+
                 String rawPhone = node.path("cell").asText();
-                String cleanPhone = rawPhone.replaceAll("[^0-9]", ""); 
+                String cleanPhone = rawPhone.replaceAll("[^0-9]", "");
                 if (cleanPhone.length() < 8) cleanPhone = "09" + (100000 + random.nextInt(900000));
                 if (cleanPhone.length() > 15) cleanPhone = cleanPhone.substring(0, 15);
                 c.setCellPhone(cleanPhone);
 
-                long dniNum = 1000000000L + (long)(random.nextDouble() * 900000000L);
+                long dniNum = 1000000000L + (long) (random.nextDouble() * 900000000L);
                 c.setDni(String.valueOf(dniNum));
 
                 c.setAge((byte) node.path("dob").path("age").asInt());
-                
+
                 String calle = node.path("location").path("street").path("name").asText();
                 String numero = node.path("location").path("street").path("number").asText();
                 c.setDirection(calle + " " + numero);
 
                 c.setActive(true);
-                c.setCreatedAt(LocalDateTime.now()); 
+                c.setCreatedAt(LocalDateTime.now());
 
                 lista.add(c);
             }
@@ -126,16 +122,16 @@ public class DataSeeder implements CommandLineRunner {
                         clientRepository.save(cliente);
                         guardados++;
                     } catch (DataIntegrityViolationException e) {
-                        System.err.println("⚠️ Email duplicado omitido: " + cliente.getEmail());
+                        System.err.println(" Email duplicado omitido: " + cliente.getEmail());
                     } catch (Exception e) {
-                        System.err.println("⚠️ Error guardando cliente: " + e.getMessage());
+                        System.err.println("Error guardando cliente: " + e.getMessage());
                     }
                 }
-                System.out.println("✅ ÉXITO: " + guardados + " Clientes guardados.");
-            } 
+                System.out.println("ÉXITO: " + guardados + " Clientes guardados.");
+            }
 
         } catch (Exception e) {
-            System.err.println("❌ EXCEPCIÓN en seedClients: " + e.getMessage());
+            System.err.println(" EXCEPCIÓN en seedClients: " + e.getMessage());
         }
     }
 
@@ -150,7 +146,7 @@ public class DataSeeder implements CommandLineRunner {
 
             ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
             String jsonResponse = response.getBody();
-            
+
             ObjectMapper mapper = new ObjectMapper();
             JsonNode root = mapper.readTree(jsonResponse);
 
@@ -185,7 +181,7 @@ public class DataSeeder implements CommandLineRunner {
 
                 String imageUrl = node.path("image_link").asText();
                 if (imageUrl != null && imageUrl.length() > 255) {
-                    imageUrl = null; 
+                    imageUrl = null;
                 }
                 p.setImage(imageUrl);
 
@@ -197,14 +193,14 @@ public class DataSeeder implements CommandLineRunner {
             }
 
             productRepository.saveAll(lista);
-            System.out.println("✅ ÉXITO: " + lista.size() + " Productos guardados.");
-            
+            System.out.println(" ÉXITO: " + lista.size() + " Productos guardados.");
+
             // LOG DE VERIFICACIÓN
             long finalCount = productRepository.count();
-            System.out.println("📊 Verificación final: " + finalCount + " productos en la BD.");
+            System.out.println("Verificación final: " + finalCount + " productos en la BD.");
 
         } catch (Exception e) {
-            System.err.println("❌ EXCEPCIÓN en seedProducts: " + e.getMessage());
+            System.err.println("EXCEPCIÓN en seedProducts: " + e.getMessage());
         }
     }
 }
