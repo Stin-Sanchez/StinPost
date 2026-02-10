@@ -1,6 +1,6 @@
 package com.stinjoss.springbootmvc.app.controllers;
 
-import com.stinjoss.springbootmvc.app.domain.entities.enums.StatesProducts;
+import com.stinjoss.springbootmvc.app.domain.enums.StatesProducts;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;

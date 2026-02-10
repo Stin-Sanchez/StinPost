@@ -1,8 +1,8 @@
 package com.stinjoss.springbootmvc.app.services;
 
 
-import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.UserRequestDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.UserResponseDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS.UserRequestDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.UserResponseDTO;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,7 +20,10 @@ public interface UserService {
 
     // Métodos que no se tocaron
     List<UserResponseDTO> findByUsernameOrDni(String termino);
+
     Optional<UserResponseDTO> findByUsername(String termino);
+
     UserResponseDTO login(String username, String password);
+
     Long count();
 }

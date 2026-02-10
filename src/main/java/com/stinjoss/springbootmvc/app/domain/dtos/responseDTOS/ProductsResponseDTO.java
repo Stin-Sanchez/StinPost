@@ -1,6 +1,6 @@
-package com.stinjoss.springbootmvc.app.domain.entities.responseDTOS;
+package com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS;
 
-import com.stinjoss.springbootmvc.app.domain.entities.enums.StatesProducts;
+import com.stinjoss.springbootmvc.app.domain.enums.StatesProducts;
 import lombok.Data;
 
 import java.math.BigDecimal;

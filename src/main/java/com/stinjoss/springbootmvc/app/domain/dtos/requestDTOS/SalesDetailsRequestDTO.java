@@ -1,4 +1,4 @@
-package com.stinjoss.springbootmvc.app.domain.entities.requestDTOS;
+package com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS;
 
 
 import jakarta.validation.constraints.Min;

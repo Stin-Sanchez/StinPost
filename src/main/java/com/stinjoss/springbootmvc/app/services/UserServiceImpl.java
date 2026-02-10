@@ -1,32 +1,36 @@
 package com.stinjoss.springbootmvc.app.services;
 
+import com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS.UserRequestDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.UserResponseDTO;
+import com.stinjoss.springbootmvc.app.domain.entities.Role;
 import com.stinjoss.springbootmvc.app.domain.entities.User;
-import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.UserRequestDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.UserResponseDTO;
 import com.stinjoss.springbootmvc.app.exceptions.BusinessLogicException;
 import com.stinjoss.springbootmvc.app.exceptions.DuplicateResourceException;
 import com.stinjoss.springbootmvc.app.exceptions.ResourceNotFoundException;
+import com.stinjoss.springbootmvc.app.repositories.RoleRepository;
 import com.stinjoss.springbootmvc.app.repositories.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
     private final UserRepository repository;
-
-    public UserServiceImpl(UserRepository repository) {
-        this.repository = repository;
-    }
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     @Override
@@ -49,6 +53,16 @@ public class UserServiceImpl implements UserService {
     public UserResponseDTO save(UserRequestDTO userRequest, Long id) {
         validateUserUniqueness(userRequest, id);
 
+        Optional<Role> optionalRoleUser = roleRepository.findByName("ROLE_SELLER");
+        List<Role> roles = new ArrayList<>();
+        optionalRoleUser.ifPresent(roles::add);
+
+        if (userRequest.isAdmin()) {
+            Optional<Role> optionalRoleAdmin = roleRepository.findByName("ROLE_ADMINISTRADOR");
+            optionalRoleAdmin.ifPresent(roles::add);
+        }
+
+
         User user;
         if (id != null && id > 0) {
             user = repository.findById(id)
@@ -62,6 +76,7 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setName(userRequest.getName());
+        user.setRoles(roles);
         user.setLastname(userRequest.getLastname());
         user.setEmail(userRequest.getEmail());
         user.setDni(userRequest.getDni());
@@ -71,7 +86,7 @@ public class UserServiceImpl implements UserService {
 
         if (userRequest.getPassword() != null && !userRequest.getPassword().isBlank()) {
             validatePasswordStrength(userRequest.getPassword());
-            user.setPassword(userRequest.getPassword());
+            user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
         }
 
         User savedUser = repository.save(user);
@@ -83,7 +98,7 @@ public class UserServiceImpl implements UserService {
     public void delete(Long id) {
         User user = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("No se puede eliminar. Usuario no encontrado con ID: " + id));
-        
+
         if ("admin".equalsIgnoreCase(user.getUsername()) || user.getId() == 1L) {
             throw new BusinessLogicException("No se puede eliminar al usuario administrador principal.");
         }
@@ -119,13 +134,13 @@ public class UserServiceImpl implements UserService {
         if (!user.getPassword().equals(password)) {
             throw new BusinessLogicException("Usuario o contraseña incorrectos.");
         }
-        
+
         // La actualización se delega a un método con su propia transacción
         updateLastAccess(user.getId());
-        
+
         return mapToResponse(user);
     }
-    
+
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void updateLastAccess(Long userId) {
         try {

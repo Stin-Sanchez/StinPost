@@ -1,6 +1,6 @@
-package com.stinjoss.springbootmvc.app.domain.entities.requestDTOS;
+package com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS;
 
-import com.stinjoss.springbootmvc.app.domain.entities.enums.StatesProducts;
+import com.stinjoss.springbootmvc.app.domain.enums.StatesProducts;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 

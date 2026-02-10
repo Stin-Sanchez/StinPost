@@ -1,9 +1,9 @@
 package com.stinjoss.springbootmvc.app.services;
 
+import com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS.ProductRequestDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.ProductsResponseDTO;
 import com.stinjoss.springbootmvc.app.domain.entities.Products;
-import com.stinjoss.springbootmvc.app.domain.entities.enums.StatesProducts;
-import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.ProductRequestDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.ProductsResponseDTO;
+import com.stinjoss.springbootmvc.app.domain.enums.StatesProducts;
 import com.stinjoss.springbootmvc.app.exceptions.DuplicateResourceException;
 import com.stinjoss.springbootmvc.app.exceptions.ResourceNotFoundException;
 import com.stinjoss.springbootmvc.app.repositories.ProductRepository;

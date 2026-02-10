@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ClientRepository extends JpaRepository<Clients, Long> {
-    
+
     List<Clients> findByActiveTrue();
 
     @Query("SELECT c FROM Clients c WHERE " +
@@ -19,5 +19,6 @@ public interface ClientRepository extends JpaRepository<Clients, Long> {
     List<Clients> findBYTerm(@Param("term") String term);
 
     Optional<Clients> findByEmail(String email);
+
     Optional<Clients> findByDni(String dni);
 }

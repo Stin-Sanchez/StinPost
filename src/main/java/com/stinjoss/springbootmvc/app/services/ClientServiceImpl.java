@@ -1,8 +1,8 @@
 package com.stinjoss.springbootmvc.app.services;
 
+import com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS.ClientRequestDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.ClientResponseDTO;
 import com.stinjoss.springbootmvc.app.domain.entities.Clients;
-import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.ClientRequestDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.ClientResponseDTO;
 import com.stinjoss.springbootmvc.app.exceptions.BusinessLogicException;
 import com.stinjoss.springbootmvc.app.exceptions.DuplicateResourceException;
 import com.stinjoss.springbootmvc.app.exceptions.ResourceNotFoundException;
@@ -73,7 +73,7 @@ public class ClientServiceImpl implements ClientService {
     public void delete(Long id) {
         Clients client = clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("No se puede eliminar. Cliente no encontrado con ID: " + id));
-        
+
         if (salesRepository.existsByClientId(id)) {
             throw new BusinessLogicException("No se puede eliminar el cliente porque tiene ventas asociadas.");
         }
@@ -98,7 +98,7 @@ public class ClientServiceImpl implements ClientService {
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
-    
+
     private void validateClientUniqueness(ClientRequestDTO dto, Long currentId) {
         clientRepository.findByEmail(dto.getEmail()).ifPresent(client -> {
             if (currentId == null || !client.getId().equals(currentId)) {

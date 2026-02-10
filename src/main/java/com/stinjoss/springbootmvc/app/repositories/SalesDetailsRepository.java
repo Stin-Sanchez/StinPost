@@ -1,7 +1,7 @@
 package com.stinjoss.springbootmvc.app.repositories;
 
 import com.stinjoss.springbootmvc.app.domain.entities.SalesDetails;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.TopProductDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.TopProductDTO;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

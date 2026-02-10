@@ -1,7 +1,7 @@
 package com.stinjoss.springbootmvc.app.repositories;
 
 import com.stinjoss.springbootmvc.app.domain.entities.Products;
-import com.stinjoss.springbootmvc.app.domain.entities.enums.StatesProducts;
+import com.stinjoss.springbootmvc.app.domain.enums.StatesProducts;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

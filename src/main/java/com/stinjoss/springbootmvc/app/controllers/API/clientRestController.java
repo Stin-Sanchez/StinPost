@@ -1,8 +1,8 @@
 package com.stinjoss.springbootmvc.app.controllers.API;
 
 
-import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.ClientRequestDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.ClientResponseDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS.ClientRequestDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.ClientResponseDTO;
 import com.stinjoss.springbootmvc.app.services.ClientService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
