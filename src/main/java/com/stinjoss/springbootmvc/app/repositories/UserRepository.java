@@ -16,8 +16,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // Este es el método que usaremos para el login
     Optional<User> findByUsername(String username);
-    
+
     // Estos son para validaciones de duplicados
     Optional<User> findByEmail(String email);
+
     Optional<User> findByDni(String dni);
+
+    boolean existsByUsername(String username);
 }

@@ -1,7 +1,7 @@
 package com.stinjoss.springbootmvc.app.services;
 
-import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.ProductRequestDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.ProductsResponseDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS.ProductRequestDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.ProductsResponseDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;

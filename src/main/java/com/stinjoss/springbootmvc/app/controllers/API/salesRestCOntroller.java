@@ -1,9 +1,9 @@
 package com.stinjoss.springbootmvc.app.controllers.API;
 
-import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.SalesRequestDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.DashboardStatsDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.SalesResponseDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.UserResponseDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS.SalesRequestDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.DashboardStatsDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.SalesResponseDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.UserResponseDTO;
 import com.stinjoss.springbootmvc.app.services.SalesService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;

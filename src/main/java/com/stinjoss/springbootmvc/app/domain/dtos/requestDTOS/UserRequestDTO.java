@@ -1,10 +1,12 @@
-package com.stinjoss.springbootmvc.app.domain.entities.requestDTOS;
+package com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class UserRequestDTO {
@@ -25,7 +27,11 @@ public class UserRequestDTO {
     @NotBlank(message = "El teléfono es obligatorio")
     private String cellPhone;
 
+    private boolean admin;
+
     private Byte age;
+
+    private List<RoleRequestDTO> roles;
 
     // Credenciales
     @NotEmpty(message = "El usuario es obligatorio")

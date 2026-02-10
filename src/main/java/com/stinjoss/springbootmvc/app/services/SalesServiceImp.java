@@ -1,11 +1,11 @@
 package com.stinjoss.springbootmvc.app.services;
 
+import com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS.SalesDetailsRequestDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS.SalesRequestDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.*;
 import com.stinjoss.springbootmvc.app.domain.entities.*;
-import com.stinjoss.springbootmvc.app.domain.entities.enums.PaymentMethods;
-import com.stinjoss.springbootmvc.app.domain.entities.enums.StatesSales;
-import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.SalesDetailsRequestDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.SalesRequestDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.*;
+import com.stinjoss.springbootmvc.app.domain.enums.PaymentMethods;
+import com.stinjoss.springbootmvc.app.domain.enums.StatesSales;
 import com.stinjoss.springbootmvc.app.exceptions.BusinessLogicException;
 import com.stinjoss.springbootmvc.app.exceptions.ResourceNotFoundException;
 import com.stinjoss.springbootmvc.app.repositories.*;
@@ -57,7 +57,7 @@ public class SalesServiceImp implements SalesService {
 
         User seller = userRepository.findById(idVendedor)
                 .orElseThrow(() -> new ResourceNotFoundException("Vendedor no encontrado con ID: " + idVendedor));
-        
+
         Clients client = clientRepository.findById(saleRequest.getClientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente no encontrado con ID: " + saleRequest.getClientId()));
 
@@ -125,7 +125,7 @@ public class SalesServiceImp implements SalesService {
         sale.setState(StatesSales.ANULADA);
         repository.save(sale);
     }
-    
+
     @Transactional(readOnly = true)
     @Override
     public List<SalesResponseDTO> findAll() {
@@ -158,7 +158,7 @@ public class SalesServiceImp implements SalesService {
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
-    
+
     @Transactional(readOnly = true)
     @Override
     public DashboardStatsDTO getDashboardStats() {
@@ -178,23 +178,23 @@ public class SalesServiceImp implements SalesService {
 
         Long lowStockCount = productRepository.countLowStockProducts();
         if (lowStockCount == null) lowStockCount = 0L;
-        
+
         List<SalesResponseDTO> recentSales = repository.findTop5ByOrderByCreatedAtDesc()
                 .stream().map(this::mapToResponse).collect(Collectors.toList());
 
         List<TopProductDTO> topProducts = salesDetailsRepository.findTopSellingProducts(PageRequest.of(0, 5));
-        
+
         LocalDateTime sevenDaysAgo = now.minusDays(7).toLocalDate().atStartOfDay();
         List<Object[]> chartRawData = repository.findDailySalesSum(sevenDaysAgo);
-        
+
         List<String> labels = new ArrayList<>();
         List<BigDecimal> data = new ArrayList<>();
-        
+
         for (Object[] row : chartRawData) {
             labels.add(row[0].toString());
             data.add((BigDecimal) row[1]);
         }
-        
+
         ChartDataDTO chartData = new ChartDataDTO(labels, data);
 
         return new DashboardStatsDTO(totalToday, countToday, totalMonth, lowStockCount, recentSales, topProducts, chartData);

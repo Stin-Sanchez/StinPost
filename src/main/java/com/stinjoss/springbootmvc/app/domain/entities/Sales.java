@@ -1,8 +1,8 @@
 package com.stinjoss.springbootmvc.app.domain.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.stinjoss.springbootmvc.app.domain.entities.enums.PaymentMethods;
-import com.stinjoss.springbootmvc.app.domain.entities.enums.StatesSales;
+import com.stinjoss.springbootmvc.app.domain.enums.PaymentMethods;
+import com.stinjoss.springbootmvc.app.domain.enums.StatesSales;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -12,7 +12,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 

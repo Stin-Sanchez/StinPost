@@ -1,7 +1,7 @@
-package com.stinjoss.springbootmvc.app.domain.entities.responseDTOS;
+package com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS;
 
-import com.stinjoss.springbootmvc.app.domain.entities.enums.PaymentMethods;
-import com.stinjoss.springbootmvc.app.domain.entities.enums.StatesSales;
+import com.stinjoss.springbootmvc.app.domain.enums.PaymentMethods;
+import com.stinjoss.springbootmvc.app.domain.enums.StatesSales;
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 

@@ -1,6 +1,6 @@
 package com.stinjoss.springbootmvc.app.controllers;
 
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.UserResponseDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.UserResponseDTO;
 import com.stinjoss.springbootmvc.app.exceptions.BusinessLogicException;
 import com.stinjoss.springbootmvc.app.services.UserService;
 import jakarta.servlet.http.HttpSession;

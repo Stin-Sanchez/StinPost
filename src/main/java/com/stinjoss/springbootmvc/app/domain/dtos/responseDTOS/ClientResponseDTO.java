@@ -1,4 +1,4 @@
-package com.stinjoss.springbootmvc.app.domain.entities.responseDTOS;
+package com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS;
 
 import lombok.Data;
 

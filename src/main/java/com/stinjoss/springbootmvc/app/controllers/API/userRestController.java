@@ -1,12 +1,11 @@
 package com.stinjoss.springbootmvc.app.controllers.API;
 
 
-import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.UserRequestDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.UserResponseDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS.UserRequestDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.UserResponseDTO;
 import com.stinjoss.springbootmvc.app.services.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,10 +17,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class userRestController {
 
-
-    @Autowired
     private final UserService service;
-    
+
     @GetMapping
     public ResponseEntity<List<UserResponseDTO>> listUsers() {
         return ResponseEntity.ok(service.findAll());

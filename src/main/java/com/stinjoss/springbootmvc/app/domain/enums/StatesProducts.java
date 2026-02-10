@@ -1,4 +1,4 @@
-package com.stinjoss.springbootmvc.app.domain.entities.enums;
+package com.stinjoss.springbootmvc.app.domain.enums;
 
 public enum StatesProducts {
     DISPONIBLE("Disponible"),

@@ -3,8 +3,8 @@ package com.stinjoss.springbootmvc.app.controllers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.DashboardStatsDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.UserResponseDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.DashboardStatsDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.UserResponseDTO;
 import com.stinjoss.springbootmvc.app.services.SalesService;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +33,7 @@ public class HomeViewController {
         // Si pasa, mostramos la página
         model.addAttribute("usuario", user);
         model.addAttribute("stats", stats);
-        
+
         // Convertimos el objeto chartData a JSON String aquí en el controlador
         try {
             String chartDataJson = objectMapper.writeValueAsString(stats.getSalesChart());

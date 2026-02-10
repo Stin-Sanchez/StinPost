@@ -1,4 +1,4 @@
-package com.stinjoss.springbootmvc.app.domain.entities.responseDTOS;
+package com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS;
 
 import lombok.Data;
 
@@ -13,5 +13,5 @@ public class UserResponseDTO {
     private String username;
     private String role; // Si manejas roles
     private LocalDateTime createdAt;
-    // JAMÁS devuelvas el password aquí
+   
 }

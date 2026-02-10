@@ -1,7 +1,7 @@
 package com.stinjoss.springbootmvc.app.controllers.API;
 
-import com.stinjoss.springbootmvc.app.domain.entities.requestDTOS.ProductRequestDTO;
-import com.stinjoss.springbootmvc.app.domain.entities.responseDTOS.ProductsResponseDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.requestDTOS.ProductRequestDTO;
+import com.stinjoss.springbootmvc.app.domain.dtos.responseDTOS.ProductsResponseDTO;
 import com.stinjoss.springbootmvc.app.services.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -34,9 +34,9 @@ public class productRestController {
     ) {
         Sort sort = sortDir.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
         Pageable pageable = PageRequest.of(page, size, sort);
-        
+
         Page<ProductsResponseDTO> resultPage;
-        
+
         if (state != null && !state.isEmpty() && !state.equalsIgnoreCase("ALL")) {
             // Si se especifica un estado, filtramos por él
             resultPage = service.findByState(state, pageable);
@@ -44,7 +44,7 @@ public class productRestController {
             // Si no, buscamos todos los productos activos
             resultPage = service.findAll(pageable);
         }
-        
+
         return ResponseEntity.ok(resultPage);
     }
 
@@ -52,7 +52,7 @@ public class productRestController {
     public ResponseEntity<ProductsResponseDTO> details(@PathVariable Long id) {
         return ResponseEntity.ok(service.findById(id));
     }
-    
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ProductsResponseDTO> create(
             @Valid @ModelAttribute ProductRequestDTO product,
